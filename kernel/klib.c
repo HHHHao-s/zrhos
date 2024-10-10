@@ -13,11 +13,11 @@ static void putstr(const char *s)
 
 void panic(const char *s)
 {
-  putstr("panic: ");
-  putstr(s);
-  putstr("\n");
+    putstr("panic: ");
+    putstr(s);
+    putstr("\n");
 
-    volatile uint32 *shutdown_reg = (uint32 *)(VIRTIO_MMIO_BASE + VIRTIO_MMIO_SHUTDOWN);
+    volatile uint32_t *shutdown_reg = (uint32_t *)(VIRTIO_MMIO_BASE + VIRTIO_MMIO_SHUTDOWN);
     *shutdown_reg = 0x42;
 
 }
@@ -343,15 +343,15 @@ void *memset(void *s, int c, size_t n) {
 void *memmove(void *dst, const void *src, size_t n) {
   panic_on(n>1024, "太大了");
   
-  uint8 buf[n];
+  uint8_t buf[n];
   memcpy(buf, src, n);
   memcpy(dst, buf, n);
   return dst;
 }
 
 void *memcpy(void *out, const void *in, size_t n) {
-  uint8 *pout=out;
-  const uint8* pin = in;
+  uint8_t *pout=out;
+  const uint8_t* pin = in;
   for(size_t i=0;i<n;i++){
     *pout++ = *pin++;
   }
