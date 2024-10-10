@@ -5,6 +5,9 @@ OBJS = \
   $K/entry.o \
   $K/start.o \
   $K/main.o \
+  $K/uart.o \
+  $K/proc.o \
+  $K/klib.o \
 
 
 ifndef TOOLPREFIX
@@ -78,7 +81,7 @@ endif
 
 FWDPORT = $(shell expr `id -u` % 5000 + 25999)
 
-QEMUOPTS = -machine virt -bios none -kernel $K/kernel -m 128M -smp $(CPUS)
+QEMUOPTS = -machine virt -bios none -kernel $K/kernel -m 128M -smp $(CPUS) -nographic
 
 # ifdef FS
 # QEMUOPTS += -global virtio-mmio.force-legacy=false

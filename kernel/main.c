@@ -1,6 +1,14 @@
-
+#include "platform.h"
 
 int main(){
-    while(1){};
+    if(cpuid() == 0){
+        uart_init();
+        printf("Hello, world!\n");
+        panic("main");
+    }else{
+        ;
+    }
+    
+
 }
 
