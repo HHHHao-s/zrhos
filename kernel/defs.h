@@ -7,7 +7,19 @@ int uart_getc(void);
 
 // ------------------- proc.c -------------------
 
+typedef struct cpu cpu_t;
+typedef struct task task_t;
+typedef struct context context_t;
+
 int cpuid();
+cpu_t *mycpu(void);
+void scheduler(void);
+void task_init();
+task_t* task_create(void (*entry)(void*), void *arg);
+void yield();
+void exit();
+void force_exit(task_t *t);
+
 
 // ------------------- main.c -------------------
 
@@ -50,10 +62,14 @@ void* mem_malloc(size_t size);
 void mem_free(void* ptr);
 
 // ------------------- lock.c -------------------
-
 typedef struct lm_lock lm_lock_t;
 
 void lm_init();
 void lm_lockinit(lm_lock_t *lock, char *name);
 void lm_lock(lm_lock_t *lk);
 void lm_unlock(lm_lock_t *lk);
+
+// ------------------- swtch.S -------------------
+
+// switch to the new context
+int swtch(context_t *old , context_t *new);

@@ -1,10 +1,7 @@
 #include "platform.h"
-
+#include "lock.h"
 
 // lm lock (spinlock, condition variable) module
-
-typedef struct lm_lock lm_lock_t;
-
 static int holding(lm_lock_t *lk){
     return lk->locked && lk->cpu == cpuid();
 }
@@ -23,7 +20,7 @@ void lm_lockinit(lm_lock_t *lock, char *name){
 void lm_lock(lm_lock_t *lk){
 
     if(holding(lk))
-    panic("acquire");
+        panic("holding lock");
 
     // On RISC-V, sync_lock_test_and_set turns into an atomic swap:
     //   a5 = 1
@@ -44,7 +41,7 @@ void lm_lock(lm_lock_t *lk){
 
 void lm_unlock(lm_lock_t *lk){
     if(!holding(lk))
-        panic("release");
+        panic("unlock");
 
     lk->cpu = -1;
 

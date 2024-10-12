@@ -1,5 +1,5 @@
 #include "platform.h"
-
+#include "lock.h"
 #define ALIGNMENT 8
 
 typedef void *Blockptr_t;

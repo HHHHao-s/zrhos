@@ -1,10 +1,11 @@
 
 // paramas for the kernel
 #define NCPU 8  
+#define NTASK 32
 #include "memlayout.h"
 #include "types.h"
 #include "defs.h"
-#include "lock.h"
+
 // riscv platform
 #ifndef __ASSEMBLER__
 

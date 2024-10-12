@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdarg.h>
 
+
 static void putstr(const char *s)
 {
   while (*s)
@@ -13,9 +14,8 @@ static void putstr(const char *s)
 
 void panic(const char *s)
 {
-    putstr("panic: ");
-    putstr(s);
-    putstr("\n");
+    printf("panic: %s\n",s);
+    
 
     volatile uint32_t *shutdown_reg = (uint32_t *)(VIRTIO_MMIO_BASE + VIRTIO_MMIO_SHUTDOWN);
     *shutdown_reg = 0x42;
