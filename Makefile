@@ -11,6 +11,9 @@ OBJS = \
   $K/mem.o \
   $K/lock.o \
   $K/swtch.o \
+  $K/plic.o \
+  $K/trap.o \
+  $K/kernelvec.o \
 
 ifndef TOOLPREFIX
 TOOLPREFIX := $(shell if riscv64-unknown-elf-objdump -i 2>&1 | grep 'elf64-big' >/dev/null 2>&1; \

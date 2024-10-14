@@ -15,11 +15,7 @@ static void putstr(const char *s)
 void panic(const char *s)
 {
     printf("panic: %s\n",s);
-    
-
-    volatile uint32_t *shutdown_reg = (uint32_t *)(VIRTIO_MMIO_BASE + VIRTIO_MMIO_SHUTDOWN);
-    *shutdown_reg = 0x42;
-
+    while(1);
 }
 
 void panic_on(int cond, const char *s)

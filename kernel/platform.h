@@ -57,6 +57,7 @@ w_mepc(uint64_t x)
 #define SSTATUS_SIE (1L << 1)  // Supervisor Interrupt Enable
 #define SSTATUS_UIE (1L << 0)  // User Interrupt Enable
 
+
 static inline uint64_t
 r_sstatus()
 {
@@ -233,6 +234,17 @@ w_mscratch(uint64_t x)
 }
 
 // Supervisor Trap Cause
+#define SCAUSE_INTERRUPT (1UL << 63)
+#define SCAUSE_USER_SOFTWARE 0
+#define SCAUSE_SUPERVISOR_SOFTWARE 1
+#define SCAUSE_USER_EXTERN_INTERRUPT 8
+#define SCAUSE_SUPERVISOR_EXTERN_INTERRUPT 9
+#define SCAUSE_PAGE_FAULT_LOAD 13
+#define SCAUSE_ECALL 8
+
+
+
+
 static inline uint64_t
 r_scause()
 {

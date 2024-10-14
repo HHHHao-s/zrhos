@@ -16,32 +16,28 @@
 // PHYSTOP -- end RAM used by the kernel
 
 #define UART0 0x10000000L
-#define VIRTIO_MMIO_BASE 0x10001000L
-#define VIRTIO_MMIO_MAGIC_VALUE 0x000
-#define VIRTIO_MMIO_VERSION 0x004
-#define VIRTIO_MMIO_DEVICE_ID 0x008
-#define VIRTIO_MMIO_VENDOR_ID 0x00c
-#define VIRTIO_MMIO_STATUS 0x070
-#define VIRTIO_MMIO_QUEUE_SEL 0x030
-#define VIRTIO_MMIO_QUEUE_NUM_MAX 0x034
-#define VIRTIO_MMIO_QUEUE_NUM 0x038
-#define VIRTIO_MMIO_QUEUE_ALIGN 0x03c
-#define VIRTIO_MMIO_QUEUE_PFN 0x040
-#define VIRTIO_MMIO_QUEUE_READY 0x044
-#define VIRTIO_MMIO_QUEUE_NOTIFY 0x050
-#define VIRTIO_MMIO_INTERRUPT_STATUS 0x060
-#define VIRTIO_MMIO_INTERRUPT_ACK 0x064
-#define VIRTIO_MMIO_STATUS_ACK 0x070
-#define VIRTIO_MMIO_STATUS_DRIVER 0x074
-#define VIRTIO_MMIO_STATUS_DRIVER_OK 0x078
-#define VIRTIO_MMIO_STATUS_FEATURES_OK 0x080
-#define VIRTIO_MMIO_STATUS_DEVICE_NEEDS_RESET 0x084
-#define VIRTIO_MMIO_STATUS_FAILED 0x088
+#define UART0_IRQ 10
 
-#define VIRTIO_MMIO_SHUTDOWN 0x500
+// virtio mmio interface
+// #define VIRTIO0 0x10001000
+// #define VIRTIO0_IRQ 1
 
+// core local interruptor (CLINT), which contains the timer.
+// #define CLINT 0x2000000L
+// #define CLINT_MTIMECMP(hartid) (CLINT + 0x4000 + 8*(hartid))
+// #define CLINT_MTIME (CLINT + 0xBFF8) // cycles since boot.
+
+// qemu puts platform-level interrupt controller (PLIC) here.
+#define PLIC 0x0c000000L
+#define PLIC_PRIORITY (PLIC + 0x0)
+#define PLIC_PENDING (PLIC + 0x1000)
+#define PLIC_MENABLE(hart) (PLIC + 0x2000 + (hart)*0x100)
+#define PLIC_SENABLE(hart) (PLIC + 0x2080 + (hart)*0x100)
+#define PLIC_MPRIORITY(hart) (PLIC + 0x200000 + (hart)*0x2000)
+#define PLIC_SPRIORITY(hart) (PLIC + 0x201000 + (hart)*0x2000)
+#define PLIC_MCLAIM(hart) (PLIC + 0x200004 + (hart)*0x2000)
+#define PLIC_SCLAIM(hart) (PLIC + 0x201004 + (hart)*0x2000)
 
 #define PHYSIZE (128*1024*1024 )// 128MB
 #define PHYSTATR ( 0x80000000L)
 #define PHYSTOP  (PHYSTATR + PHYSIZE)
-

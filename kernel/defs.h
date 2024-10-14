@@ -4,6 +4,7 @@
 void uart_init(void);
 void uart_putc(char c);
 int uart_getc(void);
+void uart_intr(void);
 
 // ------------------- proc.c -------------------
 
@@ -73,3 +74,16 @@ void lm_unlock(lm_lock_t *lk);
 
 // switch to the new context
 int swtch(context_t *old , context_t *new);
+
+// ------------------- trap.c -------------------
+
+void trap_init(void);
+void trap_inithart(void);
+
+
+// ------------------- plic.c -------------------
+
+void plic_init(void);
+void plic_inithart(void);
+int plic_claim(void);
+void plic_complete(int irq);

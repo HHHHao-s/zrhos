@@ -31,20 +31,30 @@ void test(void* arg){
 
 int main(){
 
+    // now is supervisor mode
+    
+    if(intr_get()){
+        panic("intr_get");
+    }
+
     if(cpuid() == 0){
         uart_init();
         lm_init();
         mem_init();
         task_init();
-        for(int i=0;i<4;i++){
-            task_create(test ,0);
-        }
+        plic_init();
+        plic_inithart();
+        trap_init();
+        trap_inithart();
 
         started = 1;
         __sync_synchronize();
     }else{
         while(started == 0);
         __sync_synchronize();
+        plic_inithart();
+        trap_inithart();
+
     }
 
     scheduler();

@@ -66,7 +66,10 @@ uart_init(void)
 //   WriteReg(FCR, FCR_FIFO_ENABLE | FCR_FIFO_CLEAR);
 
   // enable transmit and receive interrupts.
-    //   WriteReg(IER, IER_TX_ENABLE | IER_RX_ENABLE);
+  // WriteReg(IER, IER_TX_ENABLE | IER_RX_ENABLE);
+
+  // enable receive interrupts.
+  WriteReg(IER, IER_RX_ENABLE);
 
 }
 
@@ -94,3 +97,12 @@ uart_getc(void)
   }
 }
 
+void uart_intr()
+{
+  int c;
+  while((c = uart_getc()) != -1){
+    
+    uart_putc(c);
+    
+  }
+}

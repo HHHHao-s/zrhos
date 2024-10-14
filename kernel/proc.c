@@ -22,7 +22,8 @@ void scheduler(void)
   c->current = 0;
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
-    // intr_on();
+    intr_on();
+    // printf("scheduler\n");
 
     for(t = tasks; t < &tasks[NTASK]; t++) {
       lm_lock(&t->lock);
