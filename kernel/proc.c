@@ -1,5 +1,6 @@
 #include "platform.h"
 #include "proc.h"
+#include "defs.h"
 
 cpu_t cpus[NCPU];
 task_t tasks[NTASK];
@@ -12,6 +13,14 @@ inline int cpuid(){
 inline cpu_t *mycpu(void)
 {
   return  &cpus[cpuid()];
+}
+
+task_t *mytask(void)
+{
+  push_off();
+  task_t *t= mycpu()->current;
+  pop_off();
+  return t;
 }
 
 void scheduler(void)
@@ -52,6 +61,10 @@ void task_init(){
     tasks[i].kstack = (uintptr_t)mem_malloc(PGSIZE);
     lm_lockinit(&tasks[i].lock,"task");
   }
+  for(int i=0;i<NCPU;i++){
+    cpus[i].intena = 0;
+    cpus[i].noff = 0;
+  }
 }
 
 static void init_context(task_t *t, void (*entry)(void)){
@@ -65,6 +78,7 @@ static void real_entry(){
   // jump from swtch
   task_t *t = mycpu()->current;
   lm_unlock(&t->lock);
+  intr_on();
   t->entry(t->arg);
   exit();
 }
@@ -88,11 +102,38 @@ task_t* task_create(void (*entry)(void*), void *arg){
   return 0;
 }
 
+// Switch to scheduler.  Must hold only p->lock
+// and have changed proc->state. Saves and restores
+// intena because intena is a property of this
+// kernel thread, not this CPU. It should
+// be proc->intena and proc->noff, but that would
+// break in the few places where a lock is held but
+// there's no process.
+void
+sched(void)
+{
+  int intena;
+  task_t *t = mytask();
+
+  if(!holding(&t->lock))
+    panic("sched p->lock");
+  if(mycpu()->noff != 1)
+    panic("sched locks");
+  if(t->state == RUNNING)
+    panic("sched running");
+  if(intr_get())
+    panic("sched interruptible");
+
+  intena = mycpu()->intena;
+  swtch(&t->context, &mycpu()->context);
+  mycpu()->intena = intena;
+}
+
 void yield(){
   task_t *t = mycpu()->current;
   lm_lock(&t->lock);
   t->state = RUNNABLE;
-  swtch(&t->context, &mycpu()->context);
+  sched();
   lm_unlock(&t->lock);
 }
 
@@ -107,12 +148,18 @@ void exit(){
 
 void force_exit(task_t *t){
   lm_lock(&t->lock);
-  t->state = DEAD;
-  t->id = -1;
+  t->state = KILLED;
   if(mycpu()->current == t){
     swtch(&t->context, &mycpu()->context);
     // won't return
   }else{
     lm_unlock(&t->lock);
+  }
+}
+
+void handle_timer_interrupt(){
+  task_t *t = mycpu()->current;
+  if(t != NULL && t->state == RUNNING){
+    yield();
   }
 }

@@ -1,9 +1,38 @@
 #include "platform.h"
 #include "lock.h"
+#include "proc.h"
 
 // lm lock (spinlock, condition variable) module
-static int holding(lm_lock_t *lk){
+int holding(lm_lock_t *lk){
     return lk->locked && lk->cpu == cpuid();
+}
+
+// push_off/pop_off are like intr_off()/intr_on() except that they are matched:
+// it takes two pop_off()s to undo two push_off()s.  Also, if interrupts
+// are initially off, then push_off, pop_off leaves them off.
+
+void
+push_off(void)
+{
+  int old = intr_get();
+
+  intr_off();
+  if(mycpu()->noff == 0)
+    mycpu()->intena = old;
+  mycpu()->noff += 1;
+}
+
+void
+pop_off(void)
+{
+  struct cpu *c = mycpu();
+  if(intr_get())
+    panic("pop_off - interruptible");
+  if(c->noff < 1)
+    panic("pop_off");
+  c->noff -= 1;
+  if(c->noff == 0 && c->intena)
+    intr_on();
 }
 
 
@@ -18,7 +47,7 @@ void lm_lockinit(lm_lock_t *lock, char *name){
 }
 
 void lm_lock(lm_lock_t *lk){
-
+    push_off();
     if(holding(lk))
         panic("holding lock");
 
@@ -43,7 +72,7 @@ void lm_unlock(lm_lock_t *lk){
     if(!holding(lk))
         panic("unlock");
 
-    lk->cpu = -1;
+
 
     // Tell the C compiler and the CPU to not move loads or stores
     // past this point, to ensure that all the stores in the critical
@@ -51,7 +80,11 @@ void lm_unlock(lm_lock_t *lk){
     // and that loads in the critical section occur strictly before
     // the lock is released.
     // On RISC-V, this emits a fence instruction.
+    lk->cpu = -1;
+
     __sync_synchronize();
+
+    
 
     // Release the lock, equivalent to lk->locked = 0.
     // This code doesn't use a C assignment, since the C standard
@@ -61,6 +94,8 @@ void lm_unlock(lm_lock_t *lk){
     //   s1 = &lk->locked
     //   amoswap.w zero, zero, (s1)
     __sync_lock_release(&lk->locked);
+
+        pop_off();
 }
 
 

@@ -81,7 +81,7 @@ clean:
 
 
 ifndef CPUS
-CPUS := 1
+CPUS := 4
 endif
 
 FWDPORT = $(shell expr `id -u` % 5000 + 25999)

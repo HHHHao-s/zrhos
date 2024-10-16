@@ -7,31 +7,20 @@ volatile static uint64_t sum=0;
 
 volatile static int started=0;
 
-
+int each[8];
 
 void test(void* arg){
+    task_t *t = mytask();
+    for(int i=0;i<1000000;i++){
+        each[t->id]++;
+    }
+    printf("task %d done each: %d\n",t->id, each[t->id]);
 
-    for(int i=0;i<100000;i++){
-        lm_lock(&lk);
-        sum++;
-        lm_unlock(&lk);
-        yield();
-    }
-    task_t* t = mycpu()->current;
-    if(t->id == 0){
-        
-        for(int i=0;i<10000000;i++){
-            ;
-        }
-        __sync_synchronize();
-        printf("sum = %d\n",sum);
-    }
-    exit();
 }
 
 int main(){
 
-    // now is supervisor mode
+    // now in supervisor mode
     
     if(intr_get()){
         panic("intr_get");
@@ -49,6 +38,9 @@ int main(){
 
         started = 1;
         __sync_synchronize();
+        for(int i=0;i<8;i++){
+            task_create(test, 0);
+        }
     }else{
         while(started == 0);
         __sync_synchronize();
@@ -56,6 +48,7 @@ int main(){
         trap_inithart();
 
     }
+    
 
     scheduler();
 

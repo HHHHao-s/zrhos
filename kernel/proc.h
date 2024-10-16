@@ -25,7 +25,7 @@ typedef struct context {
 typedef struct task
 {
     int id;
-    enum { RUNNING, RUNNABLE, SLEEPING, DEAD } state;
+    enum { RUNNING, RUNNABLE, SLEEPING, DEAD, KILLED } state;
     uintptr_t kstack; // Bottom of kernel stack for this process
     lm_lock_t lock;
     
@@ -41,5 +41,8 @@ typedef struct cpu{
 
     task_t *current;
     context_t context;
+    int noff;
+    int intena;
+
 
 }cpu_t;

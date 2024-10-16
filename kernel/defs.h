@@ -20,6 +20,8 @@ task_t* task_create(void (*entry)(void*), void *arg);
 void yield();
 void exit();
 void force_exit(task_t *t);
+void handle_timer_interrupt();
+task_t *mytask(void);
 
 
 // ------------------- main.c -------------------
@@ -69,6 +71,9 @@ void lm_init();
 void lm_lockinit(lm_lock_t *lock, char *name);
 void lm_lock(lm_lock_t *lk);
 void lm_unlock(lm_lock_t *lk);
+void push_off(void);
+void pop_off(void);
+int holding(lm_lock_t *lk);
 
 // ------------------- swtch.S -------------------
 
