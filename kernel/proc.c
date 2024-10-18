@@ -163,3 +163,52 @@ void handle_timer_interrupt(){
     yield();
   }
 }
+
+// Atomically release lock and sleep on chan.
+// Reacquires lock when awakened.
+void
+sleep(void *chan, lm_lock_t *lk)
+{
+  task_t* t = mytask();
+  
+  // Must acquire p->lock in order to
+  // change p->state and then call sched.
+  // Once we hold p->lock, we can be
+  // guaranteed that we won't miss any wakeup
+  // (wakeup locks p->lock),
+  // so it's okay to release lk.
+
+  lm_lock(&t->lock);  //DOC: sleeplock1
+  lm_unlock(lk);
+
+  // Go to sleep.
+  t->chan = chan;
+  t->state = SLEEPING;
+
+  sched();
+
+  // Tidy up.
+  t->chan = 0;
+
+  // Reacquire original lock.
+  lm_unlock(&t->lock);
+  lm_lock(lk);
+}
+
+// Wake up all processes sleeping on chan.
+// Must be called without any p->lock.
+void
+wakeup(void *chan)
+{
+  task_t *t;
+  task_t *myt = mytask();
+  for(t = tasks; t < &tasks[NTASK]; t++) {
+    if(t != myt){
+      lm_lock(&t->lock);
+      if(t->state == SLEEPING && t->chan == chan) {
+        t->state = RUNNABLE;
+      }
+      lm_unlock(&t->lock);
+    }
+  }
+}

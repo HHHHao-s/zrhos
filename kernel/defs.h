@@ -7,7 +7,7 @@ int uart_getc(void);
 void uart_intr(void);
 
 // ------------------- proc.c -------------------
-
+typedef struct lm_lock lm_lock_t;
 typedef struct cpu cpu_t;
 typedef struct task task_t;
 typedef struct context context_t;
@@ -22,6 +22,8 @@ void exit();
 void force_exit(task_t *t);
 void handle_timer_interrupt();
 task_t *mytask(void);
+void sleep(void *chan, lm_lock_t *lk);
+void wakeup(void *chan);
 
 
 // ------------------- main.c -------------------
@@ -65,7 +67,7 @@ void* mem_malloc(size_t size);
 void mem_free(void* ptr);
 
 // ------------------- lock.c -------------------
-typedef struct lm_lock lm_lock_t;
+typedef struct lm_sleeplock lm_sleeplock_t;
 
 void lm_init();
 void lm_lockinit(lm_lock_t *lock, char *name);
@@ -74,6 +76,10 @@ void lm_unlock(lm_lock_t *lk);
 void push_off(void);
 void pop_off(void);
 int holding(lm_lock_t *lk);
+void lm_sleeplockinit(lm_sleeplock_t *lk, char *name);
+void lm_sleeplock(lm_sleeplock_t *lk);
+void lm_sleepunlock(lm_sleeplock_t *lk);
+int lm_holdingsleep(lm_sleeplock_t *lk);
 
 // ------------------- swtch.S -------------------
 

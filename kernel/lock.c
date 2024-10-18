@@ -98,4 +98,39 @@ void lm_unlock(lm_lock_t *lk){
         pop_off();
 }
 
+void lm_sleeplockinit(lm_sleeplock_t *lk, char *name){
+    lm_lockinit(&lk->lk, name);
+    lk->locked = 0;
+}
 
+void lm_sleeplock(lm_sleeplock_t *lk){
+    lm_lock(&lk->lk);
+    task_t *t = mytask();
+    if(lk->locked == 1 && lk->pid == t->id)
+        panic("sleeplock");
+    while(lk->locked){
+        sleep(lk, &lk->lk);
+    }
+    lk->locked = 1;
+    lk->pid = t->id;
+    lm_unlock(&lk->lk);
+}
+
+void lm_sleepunlock(lm_sleeplock_t *lk){
+    lm_lock(&lk->lk);
+    task_t *t = mytask();
+    if(lk->locked == 0 || lk->pid != t->id)
+        panic("unlock");
+    lk->locked = 0;
+    lk->pid = -1;
+    wakeup(lk);
+    lm_unlock(&lk->lk);
+}
+
+int lm_holdingsleep(lm_sleeplock_t *lk){
+    int r;
+    lm_lock(&lk->lk);
+    r = lk->locked && lk->pid == mytask()->id;
+    lm_unlock(&lk->lk);
+    return r;
+}

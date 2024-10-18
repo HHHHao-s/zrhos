@@ -31,8 +31,9 @@ typedef struct task
     
     context_t context; // Switch here to run process
     void (*entry)(void*); // entry point of this task
-
     void *arg; // argument passed to entry
+
+    void *chan; // If non-zero, sleeping on chan
 
 }task_t;
 
