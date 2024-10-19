@@ -41,3 +41,19 @@
 #define PHYSIZE (128*1024*1024 )// 128MB
 #define PHYSTATR ( 0x80000000L)
 #define PHYSTOP  (PHYSTATR + PHYSIZE)
+#define MAXVA (1L << (9 + 9 + 9 + 12 - 1))
+#define PGSIZE 4096 // bytes per page
+// map the trampoline page to the highest address,
+// in both user and kernel space.
+#define TRAMPOLINE (MAXVA - PGSIZE)
+
+// User memory layout.
+// Address zero first:
+//   text
+//   original data and bss
+//   fixed-size stack
+//   expandable heap
+//   ...
+//   TRAPFRAME (p->trapframe, used by the trampoline)
+//   TRAMPOLINE (the same page as in the kernel)
+#define TRAPFRAME (TRAMPOLINE - PGSIZE)

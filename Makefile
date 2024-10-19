@@ -1,5 +1,5 @@
 K=kernel
-# U=user
+U=user
 
 OBJS = \
   $K/entry.o \
@@ -14,6 +14,8 @@ OBJS = \
   $K/plic.o \
   $K/trap.o \
   $K/kernelvec.o \
+  $K/vm.o \
+  $K/trampoline.o \
 
 ifndef TOOLPREFIX
 TOOLPREFIX := $(shell if riscv64-unknown-elf-objdump -i 2>&1 | grep 'elf64-big' >/dev/null 2>&1; \

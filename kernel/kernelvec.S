@@ -87,7 +87,8 @@ kernelvec:
 .global timervec
 .align 4
 timervec:
-        #mechine timer interrupt will jump here
+        # machine timer interrupt will jump here
+        # in machine mode won't use satp
         csrrw a0 , mscratch, a0
 
         # store used register

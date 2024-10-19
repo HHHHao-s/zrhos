@@ -98,3 +98,14 @@ void plic_init(void);
 void plic_inithart(void);
 int plic_claim(void);
 void plic_complete(int irq);
+
+
+// ------------------- vm.c -------------------
+
+typedef uint64_t pte_t;
+typedef uint64_t *pagetable_t; // 512 PTEs
+void kvm_init();
+void kvm_inithart();
+pagetable_t vm_create();
+int vm_map(pagetable_t pagetable, uint64_t va, uint64_t pa, uint64_t sz, int perm, int remap);
+pte_t* walk(pagetable_t pagetable, uint64_t va, int alloc);
