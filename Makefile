@@ -16,6 +16,7 @@ OBJS = \
   $K/kernelvec.o \
   $K/vm.o \
   $K/trampoline.o \
+  $K/syscall.o \
 
 ifndef TOOLPREFIX
 TOOLPREFIX := $(shell if riscv64-unknown-elf-objdump -i 2>&1 | grep 'elf64-big' >/dev/null 2>&1; \
@@ -59,17 +60,31 @@ endif
 
 LDFLAGS = -z max-page-size=4096
 
-$K/kernel: $(OBJS) $K/kernel.ld
+$K/kernel:  $(OBJS) $K/kernel.ld 
 	$(LD) $(LDFLAGS) -T $K/kernel.ld -o $K/kernel $(OBJS) $(OBJS_KCSAN)
 	$(OBJDUMP) -S $K/kernel > $K/kernel.asm
 	$(OBJDUMP) -t $K/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $K/kernel.sym
 
 
-
-
-$K/%.o: $K/%.c
+$K/%.o: $K/%.c $K/initcode.inc
 	$(CC) $(CFLAGS) $(EXTRAFLAG) -c -o $@ $<
 
+UOBJS = \
+  $U/start.o \
+  $U/usyscall.o \
+  $U/initcode.o \
+
+$K/initcode.inc:  $U/start.o $U/usyscall.o $U/initcode.o
+	$(LD) $(LDFLAGS) -N -e _start -Ttext 0 -o $U/initcode $^
+	$(OBJDUMP) -S $U/initcode > $U/initcode.asm
+	$(OBJCOPY) -S -O binary $U/initcode
+	xxd -i $U/initcode  > $@
+
+$U/%.o: $U/%.c
+	$(CC) $(CFLAGS) -I. -c -o $@ $<
+
+$U/%.o: $U/%.S
+	$(CC) $(CFLAGS) -I. -c -o $@ $<
 
 
 clean: 
@@ -79,11 +94,15 @@ clean:
 	mkfs/mkfs .gdbinit \
         $U/usys.S \
 	$(UPROGS) \
-	ph barrier
+	ph barrier \
+	$K/initcode.inc \
+
+
+
 
 
 ifndef CPUS
-CPUS := 4
+CPUS := 1
 endif
 
 FWDPORT = $(shell expr `id -u` % 5000 + 25999)

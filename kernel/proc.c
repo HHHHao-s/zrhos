@@ -1,10 +1,17 @@
 #include "platform.h"
 #include "proc.h"
 #include "defs.h"
+#include "memlayout.h"
+#include "types.h"
+
+// initcode is the first user program run in user mode
+// it does't exist before compile
+#include "initcode.inc"
+
+extern char trampoline[], uservec[], userret[];
 
 cpu_t cpus[NCPU];
 task_t tasks[NTASK];
-
 
 inline int cpuid(){
   return r_tp();
@@ -22,6 +29,118 @@ task_t *mytask(void)
   pop_off();
   return t;
 }
+
+static void init_context(task_t *t, void (*entry)(void)){
+  context_t *c = &t->context;
+  memset(c, 0, sizeof(*c));
+  c->ra = (uint64_t)entry;
+  c->sp = (uint64_t)(t->kstack + PGSIZE);
+}
+
+// return to user space
+void ret_entry(){
+  // jump from swtch
+  task_t *t = mycpu()->current;
+  lm_unlock(&t->lock);
+
+  usertrapret();
+
+}
+
+void user_init(){
+
+  task_t *t = utask_create();
+
+  // load initcode into memory
+  // initcode will begin at address 0 where _start is
+  uint64_t high = PGROUNDUP(user_initcode_len);
+  for(uint64_t i = 0; i < high; i += PGSIZE){
+    uvm_map(t->pagetable, i, (uint64_t)mem_malloc(PGSIZE), PGSIZE,  PTE_R | PTE_W | PTE_X, 0);
+  }
+
+  // copy initcode to memory
+  copyout(t->pagetable, 0,(char *) user_initcode, user_initcode_len);
+
+  // set the program counter to 0
+  t->trapframe->epc = 0;
+
+  // map a stack for user
+  uvm_map(t->pagetable, high + PGSIZE, (uint64_t)mem_malloc(PGSIZE), PGSIZE, PTE_R | PTE_W, 0);
+
+  t->trapframe->sp = high + PGSIZE*2;// top of the stack
+
+  t->state = RUNNABLE; 
+
+  lm_unlock(&t->lock);
+
+}
+
+
+
+int alloc_pid(){
+  static lm_lock_t pid_lock;
+  static int nextpid = 1;
+  int pid;
+  lm_lock(&pid_lock);
+  pid = nextpid++;
+  lm_unlock(&pid_lock);
+  return pid;
+}
+
+pagetable_t user_pagetable(task_t *t){
+  pagetable_t pagetable = vm_create();
+
+  if(pagetable == 0)
+    return 0;
+
+  // map trampoline code
+  // kernel use it to return to user space or handle trap
+  if(vm_map(pagetable, TRAMPOLINE, (uint64_t)trampoline, PGSIZE, PTE_R | PTE_X, 0) < 0){
+    mem_free(pagetable);
+    return 0;
+  }
+
+  // map trapframe page
+  // kernel use it to store trapframe
+  if(vm_map(pagetable, TRAPFRAME, (uint64_t)t->trapframe, PGSIZE, PTE_R | PTE_W, 0) < 0){
+    vm_unmap(pagetable, TRAMPOLINE, 1, 0);
+    mem_free(pagetable);
+    return 0;
+  }
+
+  return pagetable;
+}
+
+task_t * utask_create(){
+  task_t *t = 0;
+  for(t = tasks; t < &tasks[NTASK]; t++){
+    lm_lock(&t->lock);
+    if(t->state == DEAD){
+      t->id = alloc_pid();
+      t->state = USED;
+
+      init_context(t, ret_entry);
+      break;
+    }
+    lm_unlock(&t->lock);
+  }
+  if(t == &tasks[NTASK])
+    return 0;
+  
+  
+  t->trapframe = (trapframe_t*)mem_malloc(PGSIZE);
+
+  memset(t->trapframe, 0, sizeof(PGSIZE));
+
+  t->pagetable = user_pagetable(t);
+
+  return t;
+
+
+
+}
+
+
 
 void scheduler(void)
 {
@@ -67,12 +186,7 @@ void task_init(){
   }
 }
 
-static void init_context(task_t *t, void (*entry)(void)){
-  context_t *c = &t->context;
-  memset(c, 0, sizeof(*c));
-  c->ra = (uint64_t)entry;
-  c->sp = (uint64_t)(t->kstack + PGSIZE);
-}
+
 
 static void real_entry(){
   // jump from swtch
@@ -83,7 +197,7 @@ static void real_entry(){
   exit();
 }
 
-// create a new task, return the task pointer, it will run automatically
+// create a new task running in kernel, return the task pointer, it will run automatically
 task_t* task_create(void (*entry)(void*), void *arg){
   task_t *t;
   for(t = tasks; t < &tasks[NTASK]; t++){

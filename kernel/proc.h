@@ -23,7 +23,7 @@ typedef struct context {
 
 // for sscratch
 typedef struct trapframe {
-  /*   0 */ uint64_t unused;        // unused (no kernel page table)
+  /*   0 */ uint64_t kernel_satp;        // kernel page table
   /*   8 */ uint64_t kernel_sp;     // top of process's kernel stack
   /*  16 */ uint64_t kernel_trap;   // usertrap()
   /*  24 */ uint64_t epc;           // saved user program counter
@@ -64,7 +64,7 @@ typedef struct trapframe {
 typedef struct task
 {
     int id;
-    enum { RUNNING, RUNNABLE, SLEEPING, DEAD, KILLED } state;
+    enum { RUNNING, RUNNABLE, SLEEPING, DEAD, KILLED, USED } state;
     uintptr_t kstack; // Bottom of kernel stack for this process
     lm_lock_t lock;
     
@@ -72,7 +72,8 @@ typedef struct task
     void (*entry)(void*); // entry point of this task
     void *arg; // argument passed to entry
     pagetable_t pagetable; // user page table
-    trapframe_t trapframe; // data page for uservec.S
+    trapframe_t* trapframe; // data page for uservec.S
+
 
     void *chan; // If non-zero, sleeping on chan
 

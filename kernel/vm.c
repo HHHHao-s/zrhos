@@ -1,5 +1,8 @@
 #include "platform.h"
 #include "memlayout.h"
+#include "types.h"
+#include "defs.h"
+
 // virtual memory module 
 // Sv39
 // A 64-bit virtual address is split into five fields:
@@ -35,8 +38,6 @@ void kvm_init(){
     // the highest virtual address in the kernel.
     vm_map(kernel_pagetable, TRAMPOLINE, (uint64_t)trampoline, PGSIZE, PTE_R | PTE_X, 0);
 
-    // allocate and map a kernel stack for each process.
-
 
 }
 
@@ -61,6 +62,11 @@ pagetable_t vm_create(){
     return pagetable;
 }
 
+int uvm_map(pagetable_t pagetable, uint64_t va, uint64_t pa, uint64_t sz, int perm, int remap){
+
+    return vm_map(pagetable, va, pa, sz, perm | PTE_U, remap);
+}
+
 // can indicate the permission of the page (e.g. user, read, write, execute)
 int vm_map(pagetable_t pagetable, uint64_t va, uint64_t pa, uint64_t sz, int perm, int remap){
     
@@ -79,6 +85,56 @@ int vm_map(pagetable_t pagetable, uint64_t va, uint64_t pa, uint64_t sz, int per
     }
     return 0;
 
+}
+
+// Remove npages of mappings starting from va. va must be
+// page-aligned. The mappings must exist.
+// Optionally free the physical memory.
+void
+vm_unmap(pagetable_t pagetable, uint64_t va, uint64_t npages, int do_free)
+{
+  uint64_t a;
+  pte_t *pte;
+
+  if((va % PGSIZE) != 0)
+    panic("uvmunmap: not aligned");
+
+  for(a = va; a < va + npages*PGSIZE; a += PGSIZE){
+    if((pte = walk(pagetable, a, 0)) == 0)
+      panic("uvmunmap: walk");
+    if((*pte & PTE_V) == 0)
+      panic("uvmunmap: not mapped");
+    if(PTE_FLAGS(*pte) == PTE_V)
+      panic("uvmunmap: not a leaf");
+    if(do_free){
+      uint64_t pa = PTE2PA(*pte);
+      mem_free((void*)pa);
+    }
+    *pte = 0;
+  }
+}
+
+// Look up a virtual address, return the physical address,
+// or 0 if not mapped.
+// Can only be used to look up user pages.
+uint64_t
+walkaddr(pagetable_t pagetable, uint64_t va)
+{
+  pte_t *pte;
+  uint64_t pa;
+
+  if(va >= MAXVA)
+    return 0;
+
+  pte = walk(pagetable, va, 0);
+  if(pte == 0)
+    return 0;
+  if((*pte & PTE_V) == 0)
+    return 0;
+  if((*pte & PTE_U) == 0)
+    return 0;
+  pa = PTE2PA(*pte);
+  return pa;
 }
 
 pte_t* walk(pagetable_t pagetable, uint64_t va, int alloc){
@@ -102,4 +158,54 @@ pte_t* walk(pagetable_t pagetable, uint64_t va, int alloc){
 }
 
 
+
+// Copy from kernel to user.
+// Copy len bytes from src to virtual address dstva in a given page table.
+// Return 0 on success, -1 on error.
+int
+copyout(pagetable_t pagetable, uint64_t dstva, char *src, uint64_t len)
+{
+  uint64_t n, va0, pa0;
+
+  while(len > 0){
+    va0 = PGROUNDDOWN(dstva);
+    pa0 = walkaddr(pagetable, va0);
+    if(pa0 == 0)
+      return -1;
+    n = PGSIZE - (dstva - va0);
+    if(n > len)
+      n = len;
+    memmove((void *)(pa0 + (dstva - va0)), src, n);
+
+    len -= n;
+    src += n;
+    dstva = va0 + PGSIZE;
+  }
+  return 0;
+}
+
+// Copy from user to kernel.
+// Copy len bytes to dst from virtual address srcva in a given page table.
+// Return 0 on success, -1 on error.
+int
+copyin(pagetable_t pagetable, char *dst, uint64_t srcva, uint64_t len)
+{
+  uint64_t n, va0, pa0;
+
+  while(len > 0){
+    va0 = PGROUNDDOWN(srcva);
+    pa0 = walkaddr(pagetable, va0);
+    if(pa0 == 0)
+      return -1;
+    n = PGSIZE - (srcva - va0);
+    if(n > len)
+      n = len;
+    memmove(dst, (void *)(pa0 + (srcva - va0)), n);
+
+    len -= n;
+    dst += n;
+    srcva = va0 + PGSIZE;
+  }
+  return 0;
+}
 

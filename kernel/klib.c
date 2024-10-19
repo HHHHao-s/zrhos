@@ -1,3 +1,6 @@
+#include "memlayout.h"
+#include "types.h"
+#include "defs.h"
 #include "platform.h"
 #include <stddef.h>
 #include <stdarg.h>

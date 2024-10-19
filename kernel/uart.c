@@ -3,6 +3,8 @@
 //
 
 #include "platform.h"
+#include "memlayout.h"
+#include "types.h"
 
 // the UART control registers are memory-mapped
 // at address UART0. this macro returns the

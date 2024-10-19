@@ -1,4 +1,4 @@
-
+#include "platform.h"
 
 // ------------------- uart.c ------------------- 
 void uart_init(void);
@@ -24,6 +24,11 @@ void handle_timer_interrupt();
 task_t *mytask(void);
 void sleep(void *chan, lm_lock_t *lk);
 void wakeup(void *chan);
+void user_init();
+void ret_entry();
+int alloc_pid();
+pagetable_t user_pagetable(task_t *t);
+task_t * utask_create();
 
 
 // ------------------- main.c -------------------
@@ -90,6 +95,8 @@ int swtch(context_t *old , context_t *new);
 
 void trap_init(void);
 void trap_inithart(void);
+void usertrapret(void);
+void usertrap(void);
 
 
 // ------------------- plic.c -------------------
@@ -109,3 +116,13 @@ void kvm_inithart();
 pagetable_t vm_create();
 int vm_map(pagetable_t pagetable, uint64_t va, uint64_t pa, uint64_t sz, int perm, int remap);
 pte_t* walk(pagetable_t pagetable, uint64_t va, int alloc);
+int copyout(pagetable_t pagetable, uint64_t dstva, char *src, uint64_t len);
+int copyin(pagetable_t pagetable, char *dst, uint64_t srcva, uint64_t len);
+void vmunmap(pagetable_t pagetable, uint64_t va, uint64_t npages, int do_free);
+uint64_t walkaddr(pagetable_t pagetable, uint64_t va);
+void vm_unmap(pagetable_t pagetable, uint64_t va, uint64_t npages, int do_free);
+int uvm_map(pagetable_t pagetable, uint64_t va, uint64_t pa, uint64_t sz, int perm, int remap);
+
+// ------------------- syscall.c -------------------
+
+void syscall(void);

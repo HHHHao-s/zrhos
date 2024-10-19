@@ -1,6 +1,8 @@
 #include "platform.h"
 #include "lock.h"
 #include "proc.h"
+#include "defs.h"
+#include "memlayout.h"
 lm_lock_t lk;
 
 volatile static uint64_t sum=0;
@@ -46,19 +48,21 @@ int main(){
         plic_inithart();
         trap_init();
         trap_inithart();
-        lm_sleeplockinit(&slk, "test");
-        started = 1;
+        kvm_init();
         
+        started = 1;
         __sync_synchronize();
-        for(int i=0;i<8;i++){
-            task_create(test, 0);
-            running++;
-        }
+
+        kvm_inithart();
+
+        user_init();
+        
     }else{
         while(started == 0);
         __sync_synchronize();
         plic_inithart();
         trap_inithart();
+        kvm_inithart();
 
     }
     

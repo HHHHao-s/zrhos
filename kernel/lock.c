@@ -1,6 +1,10 @@
 #include "platform.h"
 #include "lock.h"
 #include "proc.h"
+#include "memlayout.h"
+#include "types.h"
+#include "defs.h"
+
 
 // lm lock (spinlock, condition variable) module
 int holding(lm_lock_t *lk){

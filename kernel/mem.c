@@ -1,3 +1,6 @@
+#include "memlayout.h"
+#include "types.h"
+#include "defs.h"
 #include "platform.h"
 #include "lock.h"
 #define ALIGNMENT 8
