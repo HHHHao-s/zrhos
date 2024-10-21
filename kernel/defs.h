@@ -29,6 +29,8 @@ void ret_entry();
 int alloc_pid();
 pagetable_t user_pagetable(task_t *t);
 task_t * utask_create();
+int sys_exit();
+int sys_fork();
 
 
 // ------------------- main.c -------------------
@@ -122,6 +124,8 @@ void vmunmap(pagetable_t pagetable, uint64_t va, uint64_t npages, int do_free);
 uint64_t walkaddr(pagetable_t pagetable, uint64_t va);
 void vm_unmap(pagetable_t pagetable, uint64_t va, uint64_t npages, int do_free);
 int uvm_map(pagetable_t pagetable, uint64_t va, uint64_t pa, uint64_t sz, int perm, int remap);
+void free_pagetable(pagetable_t pagetable, int do_free);
+void copy_pagetable(pagetable_t from , pagetable_t to, int cover);
 
 // ------------------- syscall.c -------------------
 

@@ -2,6 +2,7 @@
 #include "memlayout.h"
 #include "types.h"
 #include "defs.h"
+#include "error.h"  
 
 // virtual memory module 
 // Sv39
@@ -157,7 +158,77 @@ pte_t* walk(pagetable_t pagetable, uint64_t va, int alloc){
 
 }
 
+int is_pagetable(pte_t pte){
+    return (pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0;
+}
 
+// free all memory referenced by page table
+void free_pagetable(pagetable_t pagetable, int do_free){
+    for(int i=0;i<512;i++){
+        pte_t pte = pagetable[i];
+        if(is_pagetable(pte)){
+            // this PTE points to a lower-level page table.
+            uint64_t child = PTE2PA(pte);
+            free_pagetable((pagetable_t)child, do_free);
+            mem_free((void*)child);
+            pagetable[i] = 0;
+        } else if(pte & PTE_V){
+            uint64_t pa = PTE2PA(pte);
+            if(do_free)
+                mem_free((void*)pa);
+        }
+    }
+}
+
+
+
+// copy pagetable from one to another
+// if cover and the PTE is already mapped, free the old page
+void copy_pagetable(pagetable_t from , pagetable_t to, int cover){
+  for(int i=0;i<512;i++){
+    pte_t pte = from[i];
+    pte_t tpte = to[i];
+    if((pte & PTE_V) == 0 && (tpte & PTE_V) != 0 && cover){
+      // free the old page
+      free_pagetable((pagetable_t)PTE2PA(tpte), 1);
+      continue;
+    }
+    if(is_pagetable(pte)){
+      // this PTE points to a lower-level page table.
+      uint64_t child = PTE2PA(pte);
+      if(is_pagetable(tpte)){
+        // already allocated
+        copy_pagetable((pagetable_t)child, (pagetable_t)PTE2PA(tpte), cover);
+      } else{
+        // allocate a new page table
+        pagetable_t tchild = (pagetable_t)mem_malloc(PGSIZE);
+        memset((void*)tchild, 0, PGSIZE);
+        to[i] = PA2PTE(tchild) | PTE_V;
+        copy_pagetable((pagetable_t)child, (pagetable_t)tchild, cover);
+      }
+    } else if(pte & PTE_V){
+      // this PTE points to a page
+      uint64_t pa = PTE2PA(pte);
+      uint64_t flags = PTE_FLAGS(pte);
+      if(tpte & PTE_V){
+        if(cover){
+          // conver the old page
+          uint64_t mem = PTE2PA(tpte);
+          memmove((void*)mem, (void*)pa, PGSIZE);
+          to[i] = PA2PTE(mem) | flags | PTE_V;
+        }
+        
+      }else{
+        // allocate a new page
+        uint64_t mem = (uint64_t)mem_malloc(PGSIZE);
+        memmove((void*)mem, (void*)pa, PGSIZE);
+        to[i] = PA2PTE(mem) | flags | PTE_V;
+
+      }
+    }
+
+  }
+}
 
 // Copy from kernel to user.
 // Copy len bytes from src to virtual address dstva in a given page table.

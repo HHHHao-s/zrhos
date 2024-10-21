@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdarg.h>
 
+static char buf[4096];
 
 static void putstr(const char *s)
 {
@@ -340,11 +341,16 @@ void *memset(void *s, int c, size_t n) {
 }
 
 void *memmove(void *dst, const void *src, size_t n) {
-  panic_on(n>1024, "太大了");
   
-  uint8_t buf[n];
-  memcpy(buf, src, n);
-  memcpy(dst, buf, n);
+
+  size_t i=0;
+  while(n){
+    size_t len = n>1024?1024:n;
+    memcpy(buf, src+i, len);
+    memcpy(dst+i, buf, len);
+    n-=len;
+    i+=len;
+  }
   return dst;
 }
 

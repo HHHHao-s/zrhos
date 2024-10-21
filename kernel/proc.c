@@ -47,6 +47,7 @@ void ret_entry(){
 
 }
 
+
 void user_init(){
 
   task_t *t = utask_create();
@@ -111,6 +112,9 @@ pagetable_t user_pagetable(task_t *t){
   return pagetable;
 }
 
+// will return a task pointer, with state set to USED and holding the lock
+// it will atomically alloc a pid and page table and trapframe
+// set the entry to ret_entry
 task_t * utask_create(){
   task_t *t = 0;
   for(t = tasks; t < &tasks[NTASK]; t++){
@@ -256,6 +260,14 @@ void exit(){
   lm_lock(&t->lock);
   t->state = DEAD;
   t->id = -1;
+
+  // clear the pagetable
+  free_pagetable(t->pagetable, 1);
+
+  // free trapframe
+
+  mem_free(t->trapframe);
+
   swtch(&t->context, &mycpu()->context);
   // won't return
 }
@@ -325,4 +337,37 @@ wakeup(void *chan)
       lm_unlock(&t->lock);
     }
   }
+}
+
+int sys_exit(){
+    exit();
+    return 0;
+}
+
+int sys_fork(){
+  task_t *nt = utask_create();
+
+  task_t *t = mytask();
+
+  // copy the user memory
+  // don't cover TRAMPOLINE and TRAPFRAME
+  copy_pagetable(t->pagetable, nt->pagetable, 0);
+
+  // copy user trapframe
+  memmove(nt->trapframe, t->trapframe, sizeof(trapframe_t));
+
+
+  // set the return value of the child to 0
+  nt->trapframe->a0 = 0;
+
+  // set the return value of the parent to the pid of the child
+  t->trapframe->a0 = nt->id;
+
+  // set the state of the child to RUNNABLE
+  nt->state = RUNNABLE;
+
+  // release the lock of the child
+  lm_unlock(&nt->lock);
+  return 0;
+
 }

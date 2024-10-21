@@ -3,21 +3,21 @@
 #include "proc.h"
 #include "defs.h"
 
-uint64_t sys_putc(){
+
+
+int sys_putc(){
     task_t *t = mytask();
     char c = t->trapframe->a0;
     uart_putc(c);
     return 0;
 }
 
-uint64_t sys_exit(){
-    exit();
-    return 0;
-}
 
-static uint64_t (*syscalls[])(void)={
+
+static int (*syscalls[])(void)={
     [SYS_putc] = sys_putc,
     [SYS_exit] = sys_exit,
+    [SYS_fork] = sys_fork,
 };
 
 void syscall(){
@@ -28,7 +28,8 @@ void syscall(){
 
     int num = t->trapframe->a7;
     if(num > 0 && num < (sizeof(syscalls)/sizeof(syscalls[0])) && syscalls[num]){
-        t->trapframe->a0 = syscalls[num]();
+        int ret = syscalls[num]();
+        printf("syscall %d return %d\n", num, ret);
     }else{
         printf("unknown sys call %d\n", num);
     }
