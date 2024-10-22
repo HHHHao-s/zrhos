@@ -18,6 +18,7 @@ static int (*syscalls[])(void)={
     [SYS_putc] = sys_putc,
     [SYS_exit] = sys_exit,
     [SYS_fork] = sys_fork,
+    [SYS_wait] = sys_wait,
 };
 
 void syscall(){

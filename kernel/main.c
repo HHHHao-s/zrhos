@@ -13,7 +13,6 @@ volatile static int running = 0;
 
 semophore_t sem;
 
-lm_sleeplock_t slk;
 
 void test(void*){
 
@@ -67,8 +66,8 @@ int main(){
 
         kvm_inithart();
 
-        // user_init();
-        test_init();
+        user_init();
+        // test_init();
         
     }else{
         while(started == 0);

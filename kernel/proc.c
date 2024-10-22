@@ -138,6 +138,8 @@ task_t * utask_create(){
 
   t->pagetable = user_pagetable(t);
 
+  lm_sem_init(&t->sons_sem, 0);
+
   return t;
 
 
@@ -198,7 +200,7 @@ static void real_entry(){
   lm_unlock(&t->lock);
   intr_on();
   t->entry(t->arg);
-  exit();
+  exit(0);
 }
 
 // create a new task running in kernel, return the task pointer, it will run automatically
@@ -255,22 +257,68 @@ void yield(){
   lm_unlock(&t->lock);
 }
 
-void exit(){
-  task_t *t = mycpu()->current;
-  lm_lock(&t->lock);
-  t->state = DEAD;
-  t->id = -1;
-
-  // clear the pagetable
+void free_task(task_t *t){
   if(t->pagetable)
     free_pagetable(t->pagetable, 1);
-
-  // free trapframe
+  t->pagetable = 0;
   if(t->trapframe)
     mem_free(t->trapframe);
+  t->trapframe = 0;
+  t->id = -1;
+  t->state = DEAD;
+  t->parent = 0;
+}
+
+void reparent(task_t *t){
+  for(task_t *p = tasks; p < &tasks[NTASK]; p++){
+    if(t==p)
+      continue;
+    lm_lock(&p->lock);
+    if(p->parent == t){
+      p->parent = &tasks[0];
+      lm_V(&tasks[0].sons_sem);
+      lm_unlock(&p->lock);
+    }else{
+      lm_unlock(&p->lock);
+    }
+  }
+}
+
+void exit(int status){
+  task_t *t = mycpu()->current;
+  lm_lock(&t->lock);
+  t->state = ZOMBIE;
+  t->xstatus = status;
+  // inform the parent
+  if(t->parent){
+    lm_V(&t->parent->sons_sem);
+  }
+  reparent(t);
 
   swtch(&t->context, &mycpu()->context);
   // won't return
+}
+
+int sys_wait(){
+  
+  task_t *t = mycpu()->current;
+  int *status = (int*)t->trapframe->a0;
+  lm_P(&t->sons_sem);
+  // find the zombie son
+  for(task_t *p = tasks; p < &tasks[NTASK]; p++){
+    lm_lock(&p->lock);
+    if(p->parent == t && p->state == ZOMBIE){
+      lm_unlock(&p->lock);
+      copyout(t->pagetable, (uint64_t)status, (char *)&t->xstatus, sizeof(t->xstatus));
+      t->trapframe->a0 = p->id;
+      free_task(p);
+      return 0;
+    }
+    lm_unlock(&p->lock);
+  }
+  panic("sys_wait: no zombie son");
+  return 0;
+  
 }
 
 void force_exit(task_t *t){
@@ -341,7 +389,8 @@ wakeup(void *chan)
 }
 
 int sys_exit(){
-    exit();
+    task_t *t = mytask();
+    exit(t->trapframe->a0);
     return 0;
 }
 
@@ -366,6 +415,9 @@ int sys_fork(){
 
   // set the state of the child to RUNNABLE
   nt->state = RUNNABLE;
+
+  // set the parent
+  nt->parent = t;
 
   // release the lock of the child
   lm_unlock(&nt->lock);

@@ -140,7 +140,7 @@ int lm_holdingsleep(lm_sleeplock_t *lk){
 }
 
 void lm_sem_init(semophore_t *sem, int value){
-    panic_on(value <= 0, "sem_init: value <= 0");
+    panic_on(value < 0, "sem_init: value < 0");
     sem->value = value;
     sem->head = NULL;
     lm_lockinit(&sem->lk, "sem");

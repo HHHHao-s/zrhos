@@ -18,7 +18,7 @@ void scheduler(void);
 void task_init();
 task_t* task_create(void (*entry)(void*), void *arg);
 void yield();
-void exit();
+void exit(int status);
 void force_exit(task_t *t);
 void handle_timer_interrupt();
 task_t *mytask(void);
@@ -32,6 +32,7 @@ task_t * utask_create();
 int sys_exit();
 int sys_fork();
 void sched();
+int sys_wait();
 
 
 // ------------------- main.c -------------------

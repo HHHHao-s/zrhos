@@ -16,3 +16,9 @@ fork:
     li a7, SYS_fork
     ecall
     ret
+
+.global wait
+wait:
+    li a7, SYS_wait
+    ecall
+    ret

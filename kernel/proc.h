@@ -64,7 +64,7 @@ typedef struct trapframe {
 typedef struct task
 {
     int id;
-    enum { RUNNING, RUNNABLE, SLEEPING, DEAD, KILLED, USED } state;
+    enum { RUNNING, RUNNABLE, SLEEPING, DEAD, KILLED, USED, ZOMBIE } state;
     uintptr_t kstack; // Bottom of kernel stack for this process
     lm_lock_t lock;
     
@@ -76,6 +76,10 @@ typedef struct task
 
 
     void *chan; // If non-zero, sleeping on chan
+
+    task_t *parent; // Parent task
+    semophore_t sons_sem; // semaphore for sons
+    int xstatus; // exit status
 
 }task_t;
 
