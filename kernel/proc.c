@@ -262,11 +262,12 @@ void exit(){
   t->id = -1;
 
   // clear the pagetable
-  free_pagetable(t->pagetable, 1);
+  if(t->pagetable)
+    free_pagetable(t->pagetable, 1);
 
   // free trapframe
-
-  mem_free(t->trapframe);
+  if(t->trapframe)
+    mem_free(t->trapframe);
 
   swtch(&t->context, &mycpu()->context);
   // won't return

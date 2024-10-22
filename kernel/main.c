@@ -11,24 +11,36 @@ volatile static int started=0;
 
 volatile static int running = 0;
 
+semophore_t sem;
+
 lm_sleeplock_t slk;
 
-void test(void* arg){
+void test(void*){
 
     for(int i=0;i<10000;i++){
-        lm_sleeplock(&slk);
+        lm_P(&sem);
         sum++;
-        lm_sleepunlock(&slk);
+        lm_V(&sem);
     }
-    
     lm_lock(&lk);
     running--;
-    lm_unlock(&lk);
-
-    if(running == 0){
+    if(running==0){
         printf("sum=%d\n", sum);
     }
+    lm_unlock(&lk);
 
+}
+
+void test_init(){
+
+    lm_sem_init(&sem, 1);
+    lm_lockinit(&lk, "test");
+    lm_lock(&lk);
+    for(int i=0;i<8;i++){
+        task_create(test, 0);
+        running++;
+    }
+    lm_unlock(&lk);
 }
 
 int main(){
@@ -55,7 +67,8 @@ int main(){
 
         kvm_inithart();
 
-        user_init();
+        // user_init();
+        test_init();
         
     }else{
         while(started == 0);

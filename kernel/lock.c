@@ -138,3 +138,68 @@ int lm_holdingsleep(lm_sleeplock_t *lk){
     lm_unlock(&lk->lk);
     return r;
 }
+
+void lm_sem_init(semophore_t *sem, int value){
+    panic_on(value <= 0, "sem_init: value <= 0");
+    sem->value = value;
+    sem->head = NULL;
+    lm_lockinit(&sem->lk, "sem");
+}
+
+
+void lm_P(semophore_t *sem){
+
+    lm_lock(&sem->lk);
+    sem->value--;
+    if(sem->value < 0){
+        task_t *t = mytask();
+        struct task_list *tl = (struct task_list*)mem_malloc(sizeof(struct task_list));
+        tl->task = t;
+        tl->next = sem->head;
+        tl->prev = NULL;
+        if(tl->next != NULL){
+            tl->next->prev = tl;
+        }else{
+            sem->tail = tl;
+        }
+            
+        sem->head = tl;
+        // sleep
+        lm_lock(&t->lock);
+        t->state = SLEEPING;
+        lm_unlock(&sem->lk);
+        sched();
+
+        lm_unlock(&t->lock);
+    }else{
+        lm_unlock(&sem->lk);
+    }
+
+}
+
+void lm_V(semophore_t *sem){
+
+    lm_lock(&sem->lk);
+    sem->value++;
+    if(sem->value <=0){
+        
+        struct task_list *tl = sem->tail;
+        struct task_list *prev = tl->prev;
+        task_t *t = tl->task;
+        sem->tail = prev;
+        if(prev==NULL){
+            sem->head = NULL;
+        }else{
+            prev->next = NULL;
+        }
+        mem_free(tl);
+        // wake up
+        lm_lock(&t->lock);
+        t->state = RUNNABLE;
+        lm_unlock(&t->lock);
+        lm_unlock(&sem->lk);
+    }else{
+        lm_unlock(&sem->lk);
+    }
+
+}

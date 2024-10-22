@@ -31,6 +31,7 @@ pagetable_t user_pagetable(task_t *t);
 task_t * utask_create();
 int sys_exit();
 int sys_fork();
+void sched();
 
 
 // ------------------- main.c -------------------
@@ -75,6 +76,7 @@ void mem_free(void* ptr);
 
 // ------------------- lock.c -------------------
 typedef struct lm_sleeplock lm_sleeplock_t;
+typedef struct semophore semophore_t;
 
 void lm_init();
 void lm_lockinit(lm_lock_t *lock, char *name);
@@ -87,6 +89,9 @@ void lm_sleeplockinit(lm_sleeplock_t *lk, char *name);
 void lm_sleeplock(lm_sleeplock_t *lk);
 void lm_sleepunlock(lm_sleeplock_t *lk);
 int lm_holdingsleep(lm_sleeplock_t *lk);
+void lm_V(semophore_t *sem);
+void lm_P(semophore_t *sem);
+void lm_sem_init(semophore_t *sem, int value);
 
 // ------------------- swtch.S -------------------
 

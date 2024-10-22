@@ -67,6 +67,7 @@ void handle_trap(){
     }else{
         // exception
         printf("Exception %p\n", scause);
+        panic("handle_trap");
     }
 }
 
