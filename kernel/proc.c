@@ -140,6 +140,8 @@ task_t * utask_create(){
 
   lm_sem_init(&t->sons_sem, 0);
 
+  mmap_init(t);
+
   return t;
 
 
@@ -267,6 +269,7 @@ void free_task(task_t *t){
   t->id = -1;
   t->state = DEAD;
   t->parent = 0;
+  mmap_destroy(t);
 }
 
 void reparent(task_t *t){

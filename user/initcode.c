@@ -1,26 +1,15 @@
-
+#include "kernel/mmap.h"
 #include "usyscall.h"
 int main(){
 
     putc('a');
 
-    for(int i=0;i<8;i++){
+    uint64_t private_region = mmap(0, 4096, PERM_R | PERM_W, MAP_ANONYMOUS | MAP_PRIVATE);
 
-        if(fork()==0){
-            // child
-            putc('b'+i);
-            exit(0);
-        }else{
-            // parent
-            putc('c'+i);
-        }
+    *(char*)private_region = 'a';// test write
 
-    }
+    putc(*(char*)private_region); // test read
 
-    for(int i=0;i<8;i++){
-        int status;
-        int pid=wait(&status);
-        putc('0'+pid);
-    }
+    
 
 }

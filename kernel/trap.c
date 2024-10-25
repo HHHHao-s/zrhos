@@ -65,9 +65,26 @@ void handle_trap(){
 
 
     }else{
-        // exception
         printf("Exception %p\n", scause);
-        panic("handle_trap");
+        // exception
+        switch (scause)
+        {
+        case 15:
+        case 12:{
+
+            // store/AMO or load page fault
+            handle_pagefault();
+            break;
+        }
+           
+            
+        
+        default:
+            panic("handle_trap");
+            break;
+        }
+        
+        
     }
 }
 

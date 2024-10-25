@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include "lock.h"
+#include "rbtree.h"
 typedef struct context {
     // Saved registers
     uint64_t ra; // 0 return address
@@ -61,6 +62,7 @@ typedef struct trapframe {
   /* 280 */ uint64_t t6;
 }trapframe_t;
 
+
 typedef struct task
 {
     int id;
@@ -80,6 +82,7 @@ typedef struct task
     task_t *parent; // Parent task
     semophore_t sons_sem; // semaphore for sons
     int xstatus; // exit status
+    Mmap_t *mmap_obj; // mmap entries
 
 }task_t;
 

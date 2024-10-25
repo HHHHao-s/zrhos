@@ -22,3 +22,9 @@ wait:
     li a7, SYS_wait
     ecall
     ret
+
+.global mmap
+mmap:
+    li a7, SYS_mmap
+    ecall
+    ret

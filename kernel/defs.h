@@ -35,6 +35,7 @@ void sched();
 int sys_wait();
 
 
+
 // ------------------- main.c -------------------
 
 int main();
@@ -136,3 +137,11 @@ void copy_pagetable(pagetable_t from , pagetable_t to, int cover);
 // ------------------- syscall.c -------------------
 
 void syscall(void);
+
+// ------------------- mmap.c ----------------------
+
+uint64_t mmap(task_t *t, uint64_t addr, uint64_t sz, uint64_t perm, uint64_t flag);
+int sys_mmap();
+void mmap_init(task_t *t);
+void mmap_destroy(task_t *t);
+void handle_pagefault();

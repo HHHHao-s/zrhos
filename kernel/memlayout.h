@@ -52,8 +52,11 @@
 //   text
 //   original data and bss
 //   fixed-size stack
-//   expandable heap
+//   anynomous mmap
 //   ...
 //   TRAPFRAME (p->trapframe, used by the trampoline)
 //   TRAMPOLINE (the same page as in the kernel)
 #define TRAPFRAME (TRAMPOLINE - PGSIZE)
+// anynomous mmap will start from here
+// middle of the address space
+#define VA_ANYNOMOUS (MAXVA >> 1)

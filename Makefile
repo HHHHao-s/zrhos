@@ -17,6 +17,8 @@ OBJS = \
   $K/vm.o \
   $K/trampoline.o \
   $K/syscall.o \
+  $K/mmap.o \
+  $K/rbtree.o \
 
 ifndef TOOLPREFIX
 TOOLPREFIX := $(shell if riscv64-unknown-elf-objdump -i 2>&1 | grep 'elf64-big' >/dev/null 2>&1; \
@@ -102,7 +104,7 @@ clean:
 
 
 ifndef CPUS
-CPUS := 4
+CPUS := 1
 endif
 
 FWDPORT = $(shell expr `id -u` % 5000 + 25999)
