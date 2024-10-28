@@ -60,6 +60,7 @@ int main(){
         trap_init();
         trap_inithart();
         kvm_init();
+        mmap_init();
         
         started = 1;
         __sync_synchronize();

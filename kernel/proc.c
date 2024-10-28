@@ -3,6 +3,7 @@
 #include "defs.h"
 #include "memlayout.h"
 #include "types.h"
+#include "mmap.h"
 
 // initcode is the first user program run in user mode
 // it does't exist before compile
@@ -54,10 +55,8 @@ void user_init(){
 
   // load initcode into memory
   // initcode will begin at address 0 where _start is
-  uint64_t high = PGROUNDUP(user_initcode_len);
-  for(uint64_t i = 0; i < high; i += PGSIZE){
-    uvm_map(t->pagetable, i, (uint64_t)mem_malloc(PGSIZE), PGSIZE,  PTE_R | PTE_W | PTE_X, 0);
-  }
+  // map the initcode to the memory
+  mmap(t, 0, user_initcode_len, PERM_R|PERM_W | PERM_X, MAP_PRIVATE | MAP_ANONYMOUS | MAP_ZERO, 1);
 
   // copy initcode to memory
   copyout(t->pagetable, 0,(char *) user_initcode, user_initcode_len);
@@ -65,10 +64,12 @@ void user_init(){
   // set the program counter to 0
   t->trapframe->epc = 0;
 
-  // map a stack for user
-  uvm_map(t->pagetable, high + PGSIZE, (uint64_t)mem_malloc(PGSIZE), PGSIZE, PTE_R | PTE_W, 0);
+  uint64_t high = PGROUNDUP(user_initcode_len);
 
-  t->trapframe->sp = high + PGSIZE*2;// top of the stack
+  // map a stack for user
+  mmap(t, high, PGSIZE, PERM_R|PERM_W, MAP_PRIVATE | MAP_ANONYMOUS,0);
+
+  t->trapframe->sp = high + PGSIZE;// top of the stack
 
   t->state = RUNNABLE; 
 
@@ -140,7 +141,7 @@ task_t * utask_create(){
 
   lm_sem_init(&t->sons_sem, 0);
 
-  mmap_init(t);
+  mmap_create(t);
 
   return t;
 
@@ -260,8 +261,9 @@ void yield(){
 }
 
 void free_task(task_t *t){
+  // free the memory of pagetable and trapframe
   if(t->pagetable)
-    free_pagetable(t->pagetable, 1);
+    free_pagetable(t->pagetable, 0);
   t->pagetable = 0;
   if(t->trapframe)
     mem_free(t->trapframe);
@@ -269,6 +271,7 @@ void free_task(task_t *t){
   t->id = -1;
   t->state = DEAD;
   t->parent = 0;
+  // all allocated memory should be freed in mmap_destroy
   mmap_destroy(t);
 }
 
@@ -404,7 +407,8 @@ int sys_fork(){
 
   // copy the user memory
   // don't cover TRAMPOLINE and TRAPFRAME
-  copy_pagetable(t->pagetable, nt->pagetable, 0);
+  // copy_pagetable(t->pagetable, nt->pagetable, 0);
+  copy_mmap(t, nt);
 
   // copy user trapframe
   memmove(nt->trapframe, t->trapframe, sizeof(trapframe_t));

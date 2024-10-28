@@ -69,12 +69,19 @@ void handle_trap(){
         // exception
         switch (scause)
         {
+        case 13:
         case 15:
         case 12:{
 
             // store/AMO or load page fault
             handle_pagefault();
             break;
+        }
+        case 1:
+        case 5:
+        case 7:{
+            // access fault
+            handle_accessfault();
         }
            
             

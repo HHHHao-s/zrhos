@@ -575,8 +575,8 @@ rb_insert_node(struct rb_tree *rb, struct rb_node *node, int left, int *out)
     struct rb_node *res = position->_parent;
 
     int addleft = 1;
-
-    *out = 1;
+    if(out)
+        *out = 1;
 
     while (!res->_isnil)
     {
@@ -620,7 +620,8 @@ rb_insert_node(struct rb_tree *rb, struct rb_node *node, int left, int *out)
         }
         else
         {
-            *out = 0;
+            if(out)
+                *out = 0;
 
             return pos;
         }
@@ -713,6 +714,7 @@ void rb_clear_free(struct rb_tree *rt, rb_free_f freef)
     while (node != head)
     {
         struct rb_node *next = rb_next(node);
+        rb_erase_node(rt, node);
         if(freef)
             freef(node);
 

@@ -36,6 +36,13 @@ typedef struct MmapNode {
 
 } MmapNode_t; // mmap entry
 
+typedef struct RefCntNode {
+
+    uint64_t addr;
+    uint64_t ref_cnt;
+
+} RefCntNode_t; // reference count entry
+
 struct rb_tree;
 
 
@@ -65,7 +72,11 @@ struct rb_node
     char            _isnil;   // there are no NULL ptr, only nil node
 
     // user's data
-    MmapNode_t      val;
+    void *          data;
+    enum {
+        MmapNode,
+        RefCntNode
+    } type;
 };
 
 #if !defined RB_CONV

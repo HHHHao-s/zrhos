@@ -10,6 +10,19 @@ int main(){
 
     putc(*(char*)private_region); // test read
 
-    
+    // test copy-on-write
+    int pid = fork();
+    if(pid == 0){
+        // child
+        putc(*(char*)private_region); // test read
+        // *(char*)private_region = 'b';// test write
+        // putc(*(char*)private_region); // test read
+        exit(0);
+    }else{
+        // parent
+        wait(0);
+        putc(*(char*)private_region); // test read
+
+    }
 
 }

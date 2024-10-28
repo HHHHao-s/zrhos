@@ -9,5 +9,6 @@
 #define MAP_ANONYMOUS (1)
 #define MAP_PRIVATE (2)
 #define MAP_SHARED (4)
+#define MAP_ZERO (8)
 
 

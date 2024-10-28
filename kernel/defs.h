@@ -140,8 +140,12 @@ void syscall(void);
 
 // ------------------- mmap.c ----------------------
 
-uint64_t mmap(task_t *t, uint64_t addr, uint64_t sz, uint64_t perm, uint64_t flag);
+uint64_t mmap(task_t *t, uint64_t addr, uint64_t sz, uint64_t perm, uint64_t flag, int alloc_phy);
 int sys_mmap();
-void mmap_init(task_t *t);
+void mmap_create(task_t *t);
 void mmap_destroy(task_t *t);
 void handle_pagefault();
+int uvm_mappages(pagetable_t pagetable, uint64_t va, uint64_t sz, int perm);
+void handle_accessfault();
+void copy_mmap(task_t *t, task_t *nt);
+void mmap_init();
