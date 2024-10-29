@@ -23,15 +23,15 @@ static int (*syscalls[])(void)={
 };
 
 void syscall(){
-    printf("syscall\n");
+    // printf("syscall\n");
     task_t *t = mytask();
     if(t == 0)
         return;
 
     int num = t->trapframe->a7;
     if(num > 0 && num < (sizeof(syscalls)/sizeof(syscalls[0])) && syscalls[num]){
-        int ret = syscalls[num]();
-        printf("syscall %d return %d\n", num, ret);
+        syscalls[num]();
+        // printf("syscall %d return %d\n", num, ret);
     }else{
         printf("unknown sys call %d\n", num);
     }

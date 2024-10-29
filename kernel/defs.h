@@ -94,6 +94,8 @@ int lm_holdingsleep(lm_sleeplock_t *lk);
 void lm_V(semophore_t *sem);
 void lm_P(semophore_t *sem);
 void lm_sem_init(semophore_t *sem, int value);
+int check_lock(lm_lock_t *lk);
+
 
 // ------------------- swtch.S -------------------
 

@@ -50,6 +50,15 @@ void lm_lockinit(lm_lock_t *lock, char *name){
     strcpy(lock->name, name);
 }
 
+// if the lock is not held, acquire it and return 1.
+int check_lock(lm_lock_t *lk){
+    if(holding(lk))
+        return 0;
+    lm_lock(lk);
+    return 1;
+}
+
+
 void lm_lock(lm_lock_t *lk){
     push_off();
     if(holding(lk))

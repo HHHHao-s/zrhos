@@ -7,7 +7,7 @@
 
 static struct rb_tree ref;
 
-
+static lm_lock_t ref_lock;
 
 static int compf(const struct rb_node *l, const struct rb_node *r, void *){
     return ((MmapNode_t*)l->data)->addr < ((MmapNode_t*)r->data)->addr;
@@ -27,6 +27,7 @@ static struct rb_node *ref_cnt_alloc(uint64_t pa, uint64_t ref_cnt){
 }
 
 static int ref_cnt_inc(uint64_t pa){
+    int locked = check_lock(&ref_lock);
     struct rb_node cmp_node;
     RefCntNode_t cmp_data;
     cmp_data.addr = pa;
@@ -39,17 +40,21 @@ static int ref_cnt_inc(uint64_t pa){
     else{
         ((RefCntNode_t*)node->data)->ref_cnt++;
     }
+    if(locked)
+        lm_unlock(&ref_lock);
     return 0;
 }
 
 static int ref_cnt_dec(uint64_t pa){
-
+    int locked = check_lock(&ref_lock);
     struct rb_node cmp_node;
     RefCntNode_t cmp_data;
     cmp_data.addr = pa;
     cmp_node.data = (void*)&cmp_data;
     struct rb_node *node = rb_find(&ref, &cmp_node);
     if(node == rb_head(&ref)){
+        if(locked)
+            lm_unlock(&ref_lock);
         return -1;
     }
     else{
@@ -61,22 +66,27 @@ static int ref_cnt_dec(uint64_t pa){
             mem_free(node);
         }
     }
+    if(locked)
+        lm_unlock(&ref_lock);
     return 0;
 
 }
 
 static uint64_t ref_cnt_get(uint64_t pa){
+    int locked = check_lock(&ref_lock);
     struct rb_node cmp_node;
     RefCntNode_t cmp_data;
     cmp_data.addr = pa;
     cmp_node.data = (void*)&cmp_data;
     struct rb_node *node = rb_find(&ref, &cmp_node);
     if(node == rb_head(&ref)){
+        if(locked)
+            lm_unlock(&ref_lock);
         return 0;
     }
-    else{
-        return ((RefCntNode_t*)node->data)->ref_cnt;
-    }
+    if(locked)
+        lm_unlock(&ref_lock);
+    return ((RefCntNode_t*)node->data)->ref_cnt;
 }
 
 static void mmap_dump(struct rb_node *node){
@@ -90,6 +100,7 @@ static void mmap_dump(struct rb_node *node){
 void mmap_init(){
     // create a global rbtree for the reference count of the physical page
     rb_init(&ref, 0, ref_cnt_compf, 0);
+    lm_lockinit(&ref_lock, "ref_lock");
 }
 
 void mmap_free(struct rb_node *node){
@@ -217,44 +228,96 @@ uint64_t mmap(task_t *t, uint64_t addr, uint64_t sz, uint64_t perm, uint64_t fla
     return addr;
 }
 
-void handle_accessfault(){
-    uint64_t stval = r_stval();
-    uint64_t scause = r_scause();
-
-    
-    printf("access fault stval:%p scause:%d\n", stval, scause);
-    panic("access fault");
-    
+MmapNode_t *mmap_find(Mmap_t *obj, uint64_t addr){
+    MmapNode_t cmp_data;
+    cmp_data.addr = addr;
+    struct rb_node cmp_node;
+    cmp_node.data = &cmp_data;
+    struct rb_node * node= rb_ubnd(&obj->tree, &cmp_node);
+    if(node == rb_lmst(&obj->tree)){
+        return 0;
+    }
+    node = rb_prev(node);
+    return (MmapNode_t*)node->data;
 }
+
+void handle_accessfault(){
+    panic("access fault");
+}
+
 
 // handle the page fault
 void handle_pagefault(){
 
     // stval will contain the faulting address
     uint64_t stval = r_stval();
-
+    uint64_t scause = r_scause();
     uint64_t va = PGROUNDDOWN(stval);
-
     task_t *t = mytask();
-
     Mmap_t *obj = t->mmap_obj;
 
-    struct rb_node cmp_node;
-
-    MmapNode_t cmp_data;
-    cmp_data.addr = va;
-    cmp_node.data = &cmp_data;
-
-    // find the mapping
-    struct rb_node *node = rb_ubnd(&obj->tree, &cmp_node);
-    if(node == rb_lmst(&obj->tree)){
-        // can't find the mapping
+    MmapNode_t *mmap_node = mmap_find(obj, va);
+    if(mmap_node == 0){
         panic("page fault can't find the mapping");
     }
-    node = rb_prev(node);
-    MmapNode_t *mmap_node = (MmapNode_t*)node->data;
-    if(mmap_node->addr <= va && va < mmap_node->addr + mmap_node->sz){
-        // found the mapping
+    if(!(mmap_node->addr <= va && va < mmap_node->addr + mmap_node->sz)){
+        panic("page fault can't find the mapping");
+    }
+
+    // found the mapping
+    // check whether the page is already mapped
+    pte_t *pte = walk(t->pagetable, va, 0);
+    if(pte != 0 && (*pte & PTE_V) != 0){
+        // the page is already exist
+        // check the permission
+        uint64_t access_perm = 0;
+        switch (scause)
+        {
+        case 12:
+            access_perm = PERM_X;
+            break;
+        case 13:
+            access_perm = PERM_R;
+            break;
+        case 15:
+            access_perm = PERM_W;
+            break;
+        default:
+            break;
+        }
+        
+        if((mmap_node->perm & access_perm) == 0){
+            // the proc doesn't have the permission to access the page
+            panic("access fault permission denied");
+        }
+        uint64_t flags=  PTE_FLAGS(*pte);
+        printf("page fault: va: %p, pa: %p, perm: %p\n", va, PTE2PA(*pte), flags);
+        if(((flags & PTE_W) == 0) && access_perm == PERM_W){
+            // copy on write
+            // allocate physical memory
+            lm_lock(&ref_lock);
+            if(ref_cnt_get(va)==1){
+                // the physical page is only referenced by the current task
+                // we can modify the page directly
+                *pte |= PTE_W;
+            }else{
+                ref_cnt_dec(PTE2PA(*pte));
+                uint64_t pa = (uint64_t)mem_malloc(PGSIZE);
+                if(pa == 0){
+                    panic("access fault can't allocate physical memory");
+                }
+                // copy the content of the father's page
+                memcpy((void*)pa, (void*)PTE2PA(*pte), PGSIZE);
+                // map the physical memory to the virtual address
+                
+                *pte = PA2PTE(pa) | flags| PTE_W;
+                ref_cnt_inc(pa);
+            }
+            lm_unlock(&ref_lock);
+        }
+
+    }else{
+        // the page is not mapped
         // allocate physical memory
         if(mmap_node->flag & MAP_ANONYMOUS){
             // anonymous memory
@@ -268,11 +331,9 @@ void handle_pagefault(){
             }
             ref_cnt_inc(pa);
         }
-
-        return;
-    }else{
-        panic("page fault can't find the mapping");
     }
+
+    
 
 }
 
