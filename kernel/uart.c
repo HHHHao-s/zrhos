@@ -5,7 +5,7 @@
 #include "platform.h"
 #include "memlayout.h"
 #include "types.h"
-
+#include "defs.h"
 // the UART control registers are memory-mapped
 // at address UART0. this macro returns the
 // address of one of the registers.
@@ -80,10 +80,12 @@ uart_init(void)
 void
 uart_putc(char c)
 {
+  push_off();
   while((ReadReg(LSR) & LSR_TX_IDLE) ==0){
     ;
   }
     WriteReg(THR, c);
+  pop_off();
 }
 
 // read one input character from the UART.
@@ -104,7 +106,7 @@ void uart_intr()
   int c;
   while((c = uart_getc()) != -1){
     
-    uart_putc(c);
+    console_intr(c);
     
   }
 }

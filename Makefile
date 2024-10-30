@@ -19,6 +19,9 @@ OBJS = \
   $K/syscall.o \
   $K/mmap.o \
   $K/rbtree.o \
+  $K/console.o \
+  $K/file.o \
+
 
 ifndef TOOLPREFIX
 TOOLPREFIX := $(shell if riscv64-unknown-elf-objdump -i 2>&1 | grep 'elf64-big' >/dev/null 2>&1; \
@@ -72,12 +75,14 @@ $K/%.o: $K/%.c $K/initcode.inc
 	$(CC) $(CFLAGS) $(EXTRAFLAG) -c -o $@ $<
 
 UOBJS = \
+  $U/ulib.o \
   $U/start.o \
   $U/usyscall.o \
   $U/initcode.o \
+  
 
-$K/initcode.inc:  $U/start.o $U/usyscall.o $U/initcode.o
-	$(LD) $(LDFLAGS) -N -e _start -Ttext 0 -o $U/initcode $^
+$K/initcode.inc:  $(UOBJS)
+	$(LD) $(LDFLAGS) -T $U/initcode.ld -o $U/initcode $^
 	$(OBJDUMP) -S $U/initcode > $U/initcode.asm
 	$(OBJCOPY) -S -O binary $U/initcode
 	xxd -i $U/initcode  > $@

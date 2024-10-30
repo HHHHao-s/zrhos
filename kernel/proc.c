@@ -143,6 +143,11 @@ task_t * utask_create(){
 
   mmap_create(t);
 
+  t->ofile[0] = console_file;
+  t->ofile[1] = console_file;
+
+  
+
   return t;
 
 
@@ -430,4 +435,65 @@ int sys_fork(){
   lm_unlock(&nt->lock);
   return 0;
 
+}
+
+// Print a process listing to console.  For debugging.
+// Runs when user types ^P on console.
+// No lock to avoid wedging a stuck machine further.
+void
+procdump(void)
+{
+  static char *states[] = {
+  [DEAD]    "dead",
+  [USED]      "used",
+  [SLEEPING]  "sleep ",
+  [RUNNABLE]  "runble",
+  [RUNNING]   "run   ",
+  [ZOMBIE]    "zombie",
+  [KILLED]    "killed"
+  };
+  struct task *t;
+  char *state;
+
+  printf("\n");
+  for(t = tasks; t < &tasks[NTASK]; t++){
+    if(t->state == DEAD)
+      continue;
+    if(t->state >= 0 && t->state < NELEM(states) && states[t->state])
+      state = states[t->state];
+    else
+      state = "???";
+    printf("%d %s", t->id, state);
+    printf("\n");
+  }
+}
+
+// Copy to either a user address, or kernel address,
+// depending on usr_dst.
+// Returns 0 on success, -1 on error.
+int
+either_copyout(int user_dst, uint64_t dst, void *src, uint64_t len)
+{
+  struct task *t = mytask();
+  if(user_dst){
+    return copyout(t->pagetable, dst, src, len);
+  } else {
+    memmove((char *)dst, src, len);
+    return 0;
+  }
+}
+
+// Copy from either a user address, or kernel address,
+// depending on usr_src.
+// Returns 0 on success, -1 on error.
+int
+either_copyin(void *dst, int user_src, uint64_t src, uint64_t len)
+{
+  struct task *t = mytask();
+  if(user_src){
+    return copyin(t->pagetable, dst, src, len);
+  } else {
+    memmove(dst, (char*)src, len);
+    return 0;
+  }
 }

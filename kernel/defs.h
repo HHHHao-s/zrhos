@@ -1,5 +1,8 @@
 #include "platform.h"
 
+// number of elements in fixed-size array
+#define NELEM(x) (sizeof(x)/sizeof((x)[0]))
+
 // ------------------- uart.c ------------------- 
 void uart_init(void);
 void uart_putc(char c);
@@ -33,7 +36,9 @@ int sys_exit();
 int sys_fork();
 void sched();
 int sys_wait();
-
+void procdump();
+int either_copyout(int user_dst, uint64_t dst, void *src, uint64_t len);
+int either_copyin(void *dst, int user_src, uint64_t src, uint64_t len);
 
 
 // ------------------- main.c -------------------
@@ -80,7 +85,6 @@ void mem_free(void* ptr);
 typedef struct lm_sleeplock lm_sleeplock_t;
 typedef struct semophore semophore_t;
 
-void lm_init();
 void lm_lockinit(lm_lock_t *lock, char *name);
 void lm_lock(lm_lock_t *lk);
 void lm_unlock(lm_lock_t *lk);
@@ -151,3 +155,18 @@ int uvm_mappages(pagetable_t pagetable, uint64_t va, uint64_t sz, int perm);
 void handle_accessfault();
 void copy_mmap(task_t *t, task_t *nt);
 void mmap_init();
+int sys_munmap();
+
+
+// ------------------- file.c -------------------
+struct file;
+int sys_write();
+int sys_read();
+struct file *filealloc(void);
+
+// ------------------- console.c -------------------
+
+void console_init();
+void console_intr(int c);
+extern struct file *console_file;
+

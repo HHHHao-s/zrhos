@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include "lock.h"
 #include "rbtree.h"
+#include "file.h"
 typedef struct context {
     // Saved registers
     uint64_t ra; // 0 return address
@@ -83,6 +84,8 @@ typedef struct task
     semophore_t sons_sem; // semaphore for sons
     int xstatus; // exit status
     Mmap_t *mmap_obj; // mmap entries
+
+    file_t *ofile[NOFILE]; // Open files
 
 }task_t;
 

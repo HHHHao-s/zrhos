@@ -20,6 +20,9 @@ static int (*syscalls[])(void)={
     [SYS_fork] = sys_fork,
     [SYS_wait] = sys_wait,
     [SYS_mmap] = sys_mmap,
+    [SYS_munmap] = sys_munmap,
+    [SYS_write] = sys_write,
+    [SYS_read] = sys_read,
 };
 
 void syscall(){

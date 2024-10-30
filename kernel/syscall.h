@@ -4,3 +4,6 @@
 #define SYS_fork 3
 #define SYS_wait 4
 #define SYS_mmap 5
+#define SYS_munmap 6
+#define SYS_write 7
+#define SYS_read 8

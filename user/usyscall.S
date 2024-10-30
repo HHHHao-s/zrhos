@@ -1,9 +1,5 @@
 #include "kernel/syscall.h"
-.global putc
-putc:
-    li a7, SYS_putc
-    ecall
-    ret
+
 
 .global exit
 exit:
@@ -26,5 +22,23 @@ wait:
 .global mmap
 mmap:
     li a7, SYS_mmap
+    ecall
+    ret
+
+.global munmap
+munmap:
+    li a7, SYS_munmap
+    ecall
+    ret
+
+.global write
+write:
+    li a7, SYS_write
+    ecall
+    ret
+
+.global read
+read:
+    li a7, SYS_read
     ecall
     ret

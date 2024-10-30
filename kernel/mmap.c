@@ -387,3 +387,46 @@ void copy_mmap(task_t *t, task_t *nt){
     }
     nobj->high_level = obj->high_level;
 }
+
+// unmap the memory region
+// don't consider the size, just unmap the whole region
+int munmap(uint64_t addr){
+
+    // find the mapping
+    task_t *t = mytask();
+    Mmap_t *obj = t->mmap_obj;
+    MmapNode_t cmp_data;
+    cmp_data.addr = addr;
+    struct rb_node cmp_node;
+    cmp_node.data = &cmp_data;
+    struct rb_node *node = rb_find(&obj->tree, &cmp_node);
+    if(node == rb_head(&obj->tree)){
+        return -1;
+    }
+    MmapNode_t *mmap_node = (MmapNode_t*)node->data;
+    // unmap the memory region
+    // start a transaction
+    lm_lock(&ref_lock);
+    for(uint64_t va = mmap_node->addr; va < mmap_node->addr + mmap_node->sz; va+=PGSIZE){
+        pte_t *pte = walk(t->pagetable, va, 0);
+        if(pte == 0 || (*pte & PTE_V) == 0){
+            // the page is not mapped
+            continue;
+        }
+        uint64_t pa = PTE2PA(*pte);
+        vm_unmap(t->pagetable, va, 1, 0);
+        ref_cnt_dec(pa);
+    }
+    lm_unlock(&ref_lock);
+
+    // free the node
+    rb_erase(&obj->tree, node);
+    mmap_free(node);
+    return 0;
+}
+
+int sys_munmap(){
+    task_t *t = mytask();
+    uint64_t addr = t->trapframe->a0;
+    return munmap(addr);
+}

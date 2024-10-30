@@ -51,8 +51,7 @@ int main(){
     }
 
     if(cpuid() == 0){
-        uart_init();
-        lm_init();
+        console_init();
         mem_init();
         task_init();
         plic_init();

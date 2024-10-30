@@ -40,9 +40,6 @@ pop_off(void)
 }
 
 
-void lm_init(){
-    printf("lm_init\n");
-}
 
 void lm_lockinit(lm_lock_t *lock, char *name){
     lock->locked = 0;
