@@ -7,3 +7,5 @@
 #define SYS_munmap 6
 #define SYS_write 7
 #define SYS_read 8
+#define SYS_getpid 9
+#define SYS_kill 10

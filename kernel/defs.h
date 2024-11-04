@@ -39,7 +39,9 @@ int sys_wait();
 void procdump();
 int either_copyout(int user_dst, uint64_t dst, void *src, uint64_t len);
 int either_copyin(void *dst, int user_src, uint64_t src, uint64_t len);
-
+int sys_getpid();
+int sys_kill();
+int killed();
 
 // ------------------- main.c -------------------
 

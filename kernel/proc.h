@@ -67,7 +67,8 @@ typedef struct trapframe {
 typedef struct task
 {
     int id;
-    enum { RUNNING, RUNNABLE, SLEEPING, DEAD, KILLED, USED, ZOMBIE } state;
+    enum { RUNNING, RUNNABLE, SLEEPING, DEAD, USED, ZOMBIE } state;
+    int killed; // If non-zero, have been killed
     uintptr_t kstack; // Bottom of kernel stack for this process
     lm_lock_t lock;
     

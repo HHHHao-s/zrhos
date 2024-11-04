@@ -123,8 +123,8 @@ void usertrap(void){
     t->trapframe->epc = r_sepc();
     if(r_scause() == 8){
         // system call
-        // if(killed(t))
-        //     exit();
+        if(killed())
+            exit(0);
         
         // sepc points to the ecall instruction
         // but we want to return to the next instruction
@@ -139,6 +139,11 @@ void usertrap(void){
     }else{
         handle_trap();
     }
+
+    if(killed()){
+        exit(0);
+    }
+
     usertrapret();
 
 }

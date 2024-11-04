@@ -1,7 +1,7 @@
 #pragma once
 // paramas for the kernel
 #define NCPU 8  
-#define NTASK 32
+#define NTASK 1010
 #include "types.h"
 
 

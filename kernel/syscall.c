@@ -23,6 +23,8 @@ static int (*syscalls[])(void)={
     [SYS_munmap] = sys_munmap,
     [SYS_write] = sys_write,
     [SYS_read] = sys_read,
+    [SYS_getpid] = sys_getpid,
+    [SYS_kill] = sys_kill,
 };
 
 void syscall(){

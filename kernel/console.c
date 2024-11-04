@@ -91,7 +91,7 @@ console_read(device_t*dev,  int user_dst, uint64_t dst, int n)
     // wait until interrupt handler has put some
     // input into cons.buffer.
     while(cons.r == cons.w){
-      if(mytask()->state == KILLED){
+      if(mytask()->killed){
         lm_unlock(&cons.lock);
         return -1;
       }

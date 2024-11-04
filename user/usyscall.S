@@ -42,3 +42,15 @@ read:
     li a7, SYS_read
     ecall
     ret
+
+.global getpid
+getpid:
+    li a7, SYS_getpid
+    ecall
+    ret
+
+.global kill
+kill:
+    li a7, SYS_kill
+    ecall
+    ret

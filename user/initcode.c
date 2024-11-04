@@ -44,11 +44,44 @@ forktest(char *s)
   }
 }
 
+// try to find races in the reparenting
+// code that handles a parent exiting
+// when it still has live children.
+// void
+// reparent(char *s)
+// {
+//   int master_pid = getpid();
+//   for(int i = 0; i < 200; i++){
+//     int pid = fork();
+//     if(pid < 0){
+//       printf("%s: fork failed\n", s);
+//       exit(1);
+//     }
+//     if(pid){
+//       // father
+//       if(wait(0) != pid){
+//         printf("%s: wait wrong pid %d\n", s, pid);
+//         exit(1);
+//       }
+//     } else {
+//       // son
+//       int pid2 = fork();
+//       if(pid2 < 0){
+
+//         kill(master_pid);
+//         exit(1);
+//       }
+//       exit(0);
+//     }
+//   }
+//   exit(0);
+// }
 
 
 int main(){
     printf("hello world\n");
-    // forktest("forktest");
+    forktest("forktest");
+    // reparent("reparent");
 
 
 }

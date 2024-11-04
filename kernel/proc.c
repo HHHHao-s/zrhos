@@ -14,6 +14,11 @@ extern char trampoline[], uservec[], userret[];
 cpu_t cpus[NCPU];
 task_t tasks[NTASK];
 
+
+// lock orde: p->lock -> wait_lock
+lm_lock_t wait_lock;
+
+
 inline int cpuid(){
   return r_tp();
 }
@@ -280,19 +285,19 @@ void free_task(task_t *t){
   mmap_destroy(t);
 }
 
+// should be called with the lock of waitlock
 void reparent(task_t *t){
+
   for(task_t *p = tasks; p < &tasks[NTASK]; p++){
     if(t==p)
       continue;
-    lm_lock(&p->lock);
     if(p->parent == t){
       p->parent = &tasks[0];
+      // maybe a fake signal to wake up the parent
       lm_V(&tasks[0].sons_sem);
-      lm_unlock(&p->lock);
-    }else{
-      lm_unlock(&p->lock);
     }
   }
+
 }
 
 void exit(int status){
@@ -301,10 +306,12 @@ void exit(int status){
   t->state = ZOMBIE;
   t->xstatus = status;
   // inform the parent
+  lm_lock(&wait_lock);
   if(t->parent){
     lm_V(&t->parent->sons_sem);
   }
   reparent(t);
+  lm_unlock(&wait_lock);
 
   swtch(&t->context, &mycpu()->context);
   // won't return
@@ -312,34 +319,43 @@ void exit(int status){
 
 int sys_wait(){
   
-  task_t *t = mycpu()->current;
+  task_t *t = mytask();
   int *status = (int*)t->trapframe->a0;
-  lm_P(&t->sons_sem);
-  // find the zombie son
-  for(task_t *p = tasks; p < &tasks[NTASK]; p++){
-    lm_lock(&p->lock);
-    if(p->parent == t && p->state == ZOMBIE){
+  while(1){
+    lm_P(&t->sons_sem);
+    // find the zombie son
+    for(task_t *p = tasks; p < &tasks[NTASK]; p++){
+      lm_lock(&p->lock);
+      if(p->state == ZOMBIE){
+        lm_lock(&wait_lock);
+        if(p->parent == t){
+          if(status!=0)
+            copyout(t->pagetable, (uint64_t)status, (char *)&t->xstatus, sizeof(t->xstatus));
+          t->trapframe->a0 = p->id;
+          free_task(p);
+          lm_unlock(&wait_lock);
+          lm_unlock(&p->lock);
+          return 0;
+        } 
+        lm_unlock(&wait_lock);
+      
+        
+      }
       lm_unlock(&p->lock);
-      copyout(t->pagetable, (uint64_t)status, (char *)&t->xstatus, sizeof(t->xstatus));
-      t->trapframe->a0 = p->id;
-      free_task(p);
-      return 0;
     }
-    lm_unlock(&p->lock);
+    // fake signal, no zombie son, wait again
   }
-  panic("sys_wait: no zombie son");
   return 0;
   
 }
 
+// should be called with the lock of the task
 void force_exit(task_t *t){
-  lm_lock(&t->lock);
-  t->state = KILLED;
+
+  t->killed = 1;
   if(mycpu()->current == t){
     swtch(&t->context, &mycpu()->context);
     // won't return
-  }else{
-    lm_unlock(&t->lock);
   }
 }
 
@@ -449,8 +465,7 @@ procdump(void)
   [SLEEPING]  "sleep ",
   [RUNNABLE]  "runble",
   [RUNNING]   "run   ",
-  [ZOMBIE]    "zombie",
-  [KILLED]    "killed"
+  [ZOMBIE]    "zombie"
   };
   struct task *t;
   char *state;
@@ -496,4 +511,29 @@ either_copyin(void *dst, int user_src, uint64_t src, uint64_t len)
     memmove(dst, (char*)src, len);
     return 0;
   }
+}
+
+int sys_getpid(){
+  return mytask()->id;
+}
+
+int sys_kill(){
+  int pid = mytask()->trapframe->a0;
+  for(task_t *t = tasks; t < &tasks[NTASK]; t++){
+    lm_lock(&t->lock);
+    if(t->id == pid){
+      force_exit(t);
+      lm_unlock(&t->lock);
+      return 0;
+    }
+    lm_unlock(&t->lock);
+  }
+  return -1;
+}
+
+int killed(){
+  lm_lock(&mytask()->lock);
+  int killed= mytask()->killed;
+  lm_unlock(&mytask()->lock);
+  return killed;
 }
