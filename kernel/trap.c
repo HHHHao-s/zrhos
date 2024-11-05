@@ -22,7 +22,7 @@ void trap_inithart(){
 void handle_external(){
     int irq = plic_claim();
     if(irq == UART0_IRQ){
-        printf("uart interrupt\n");
+        // printf("uart interrupt\n");
         uart_intr();
     }
     plic_complete(irq);
@@ -65,7 +65,7 @@ void handle_trap(){
 
 
     }else{
-        printf("Exception %p\n", scause);
+        // printf("Exception %p\n", scause);
         // exception
         switch (scause)
         {

@@ -57,8 +57,8 @@ struct {
 //
 // user write()s to the console go here.
 //
-int
-console_write(device_t*dev, int user_src, uint64_t src, int n)
+uint64_t
+console_write(device_t*dev, int user_src, uint64_t src, uint64_t n)
 {
   int i;
 
@@ -78,8 +78,8 @@ console_write(device_t*dev, int user_src, uint64_t src, int n)
 // user_dist indicates whether dst is a user
 // or kernel address.
 //
-int
-console_read(device_t*dev,  int user_dst, uint64_t dst, int n)
+uint64_t
+console_read(device_t*dev,  int user_dst, uint64_t dst, uint64_t n)
 {
   uint32_t target;
   int c;

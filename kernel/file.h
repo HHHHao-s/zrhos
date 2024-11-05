@@ -9,8 +9,8 @@ struct device {
   const char *name;
   int id;
   void *ptr;
-  int (*read) (struct device *dev, int magic , uint64_t buf, int count);
-  int (*write)(struct device *dev, int magic , uint64_t buf, int count);
+  uint64_t (*read) (struct device *dev, int user_src , uint64_t buf, uint64_t count);
+  uint64_t (*write)(struct device *dev, int user_src , uint64_t buf, uint64_t count);
 };
 typedef struct device device_t;
 

@@ -77,10 +77,19 @@ forktest(char *s)
 //   exit(0);
 // }
 
+void consoletest(char *s){
+    char buf[128];
+    while(1){
+        gets(buf, sizeof(buf));
+        printf("input: %s\n", buf);
+    }
+}
+
 
 int main(){
     printf("hello world\n");
-    forktest("forktest");
+    consoletest("consoletest");
+    // forktest("forktest");
     // reparent("reparent");
 
 
