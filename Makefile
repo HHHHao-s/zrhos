@@ -21,6 +21,9 @@ OBJS = \
   $K/rbtree.o \
   $K/console.o \
   $K/file.o \
+  $K/fs.o \
+  $K/bio.o \
+  $K/virtio_disk.o \
 
 
 ifndef TOOLPREFIX
@@ -65,7 +68,7 @@ endif
 
 LDFLAGS = -z max-page-size=4096
 
-$K/kernel:  $(OBJS) $K/kernel.ld 
+$K/kernel:  $(OBJS) $K/kernel.ld mkfs/mkfs
 	$(LD) $(LDFLAGS) -T $K/kernel.ld -o $K/kernel $(OBJS) $(OBJS_KCSAN)
 	$(OBJDUMP) -S $K/kernel > $K/kernel.asm
 	$(OBJDUMP) -t $K/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $K/kernel.sym
@@ -109,18 +112,20 @@ clean:
 
 
 ifndef CPUS
-CPUS := 1
+CPUS := 8
 endif
 
 FWDPORT = $(shell expr `id -u` % 5000 + 25999)
 
 QEMUOPTS = -machine virt -bios none -kernel $K/kernel -m 128M -smp $(CPUS) -nographic
 
-# ifdef FS
-# QEMUOPTS += -global virtio-mmio.force-legacy=false
-# QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
-# QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
-# endif
+# Disable the legacy mode for Virtio-MMIO devices to ensure the use of modern mode.
+# Define a disk drive fs.img with a raw format and assign a unique identifier x0.
+# Connect a Virtio block device to the Virtio-MMIO bus and connect the disk drive x0 to this device.
+QEMUOPTS += -global virtio-mmio.force-legacy=false
+QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
+QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+
 
 qemu: $K/kernel
 	$(QEMU) $(QEMUOPTS)
@@ -128,3 +133,6 @@ qemu: $K/kernel
 qemu-gdb: $K/kernel
 	@echo "*** Now run 'gdb' in another window." 1>&2
 	$(QEMU) $(QEMUOPTS) -S -s
+
+mkfs/mkfs: mkfs/mkfs.cpp
+	g++ -Wall -g -I. -o mkfs/mkfs mkfs/mkfs.cpp

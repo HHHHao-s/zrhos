@@ -24,6 +24,11 @@
                     }
                 }
             ]
+        },
+        {
+            "label": "mkfs build",
+            "type": "shell",
+            "command": "make mkfs/mkfs"
         }
     ]
 }

@@ -14,7 +14,7 @@ plic_init(void)
 {
   // set desired IRQ priorities non-zero (otherwise disabled).
   *(uint32_t*)(PLIC + UART0_IRQ*4) = 1;
-//   *(uint32_t*)(PLIC + VIRTIO0_IRQ*4) = 1;
+  *(uint32_t*)(PLIC + VIRTIO0_IRQ*4) = 1;
 }
 
 void
