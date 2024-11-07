@@ -513,8 +513,16 @@ either_copyin(void *dst, int user_src, uint64_t src, uint64_t len)
   }
 }
 
+int getpid(){
+  task_t*t = mytask();
+  if(t)
+    return t->id;
+  else
+    return -1;
+}
+
 int sys_getpid(){
-  return mytask()->id;
+  return getpid();
 }
 
 int sys_kill(){

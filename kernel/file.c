@@ -1,7 +1,7 @@
 #include "file.h"
 #include "defs.h"
 #include "proc.h"
-
+#include "param.h"
 device_t devsw[DEV_MAX];
 
 file_t ftable[NOFILE];

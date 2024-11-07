@@ -24,6 +24,9 @@ void handle_external(){
     if(irq == UART0_IRQ){
         // printf("uart interrupt\n");
         uart_intr();
+    }else if(irq == VIRTIO0_IRQ){
+        // printf("virtio disk interrupt\n");
+        virtio_disk_intr();
     }
     plic_complete(irq);
 }

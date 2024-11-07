@@ -1,7 +1,5 @@
 #pragma once
-#define DEV_MAX 16
-#define CONSOLE 0
-#define NOFILE 100
+
 #include "types.h"
 
 

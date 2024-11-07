@@ -24,7 +24,7 @@ void kvm_init(){
     // uart registers
     vm_map(kernel_pagetable, UART0, UART0, PGSIZE, PTE_R | PTE_W, 0);
     // virtio mmio disk interface
-    // vm_map(kernel_pagetable, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W, 0);
+    vm_map(kernel_pagetable, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W, 0);
 
     // PLIC
     vm_map(kernel_pagetable, PLIC, PLIC, 0x400000, PTE_R | PTE_W, 0);

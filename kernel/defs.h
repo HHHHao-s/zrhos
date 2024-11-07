@@ -42,6 +42,7 @@ int either_copyin(void *dst, int user_src, uint64_t src, uint64_t len);
 int sys_getpid();
 int sys_kill();
 int killed();
+int getpid();
 
 // ------------------- main.c -------------------
 
@@ -171,4 +172,19 @@ struct file *filealloc(void);
 void console_init();
 void console_intr(int c);
 extern struct file *console_file;
+
+// ------------------- bio.c -------------------
+struct buf;
+void binit(void);
+struct buf* bread(uint_t dev, uint_t blockno);
+void bwrite(struct buf *b);
+void brelse(struct buf *b);
+void bpin(struct buf *b);
+void bunpin(struct buf *b);
+
+// ------------------- virtio_disk.c -------------------
+
+void virtio_disk_init(void);
+void virtio_disk_rw(struct buf *b, int write);
+void virtio_disk_intr();
 

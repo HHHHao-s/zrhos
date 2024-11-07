@@ -3,6 +3,7 @@
 #include "proc.h"
 #include "defs.h"
 #include "memlayout.h"
+#include "buf.h"
 lm_lock_t lk;
 
 volatile static uint64_t sum=0;
@@ -42,6 +43,16 @@ void test_init(){
     lm_unlock(&lk);
 }
 
+void btest(void*){
+    
+    struct buf *b = bread(ROOTDEV, 0);
+
+    for(int i=0;i<1024;i++){
+        uart_putc(b->data[i]);
+    }
+    while(1);
+}
+
 int main(){
 
     // now in supervisor mode
@@ -60,13 +71,13 @@ int main(){
         trap_inithart();
         kvm_init();
         mmap_init();
-        
+        virtio_disk_init(); // emulated hard disk
+        binit(); // buffer cache
         started = 1;
         __sync_synchronize();
-
         kvm_inithart();
-
-        user_init();
+        task_create(btest, 0);
+        // user_init();
         // test_init();
         
     }else{

@@ -112,7 +112,7 @@ clean:
 
 
 ifndef CPUS
-CPUS := 8
+CPUS := 1
 endif
 
 FWDPORT = $(shell expr `id -u` % 5000 + 25999)
@@ -136,3 +136,4 @@ qemu-gdb: $K/kernel
 
 mkfs/mkfs: mkfs/mkfs.cpp
 	g++ -Wall -g -I. -o mkfs/mkfs mkfs/mkfs.cpp
+	mkfs/mkfs
