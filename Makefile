@@ -82,7 +82,8 @@ UOBJS = \
   $U/start.o \
   $U/usyscall.o \
   $U/initcode.o \
-  
+
+ULIB = $U/ulib.o $U/usyscall.o
 
 $K/initcode.inc:  $(UOBJS)
 	$(LD) $(LDFLAGS) -T $U/initcode.ld -o $U/initcode $^
@@ -97,6 +98,21 @@ $U/%.o: $U/%.S
 	$(CC) $(CFLAGS) -I. -c -o $@ $<
 
 
+
+UPROGS =\
+	$U/_test \
+
+
+mkfs/mkfs: mkfs/mkfs.cpp $(UPROGS)
+	g++ -Wall -g -I. -fsanitize=address -o mkfs/mkfs mkfs/mkfs.cpp
+	mkfs/mkfs fs.img $(UPROGS) > /dev/null
+
+_%: %.o $(ULIB)
+	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
+	$(OBJDUMP) -S $@ > $*.asm
+	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
+
+
 clean: 
 	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \
 	*/*.o */*.d */*.asm */*.sym \
@@ -106,6 +122,7 @@ clean:
 	$(UPROGS) \
 	ph barrier \
 	$K/initcode.inc \
+
 
 
 
@@ -134,6 +151,3 @@ qemu-gdb: $K/kernel
 	@echo "*** Now run 'gdb' in another window." 1>&2
 	$(QEMU) $(QEMUOPTS) -S -s
 
-mkfs/mkfs: mkfs/mkfs.cpp
-	g++ -Wall -g -I. -o mkfs/mkfs mkfs/mkfs.cpp
-	mkfs/mkfs

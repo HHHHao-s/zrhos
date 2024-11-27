@@ -76,9 +76,9 @@ int main(){
         started = 1;
         __sync_synchronize();
         kvm_inithart();
-        task_create(btest, 0);
-        // user_init();
-        // test_init();
+
+        user_init();
+
         
     }else{
         while(started == 0);

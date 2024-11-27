@@ -3,7 +3,10 @@
 #include "usyscall.h"
 
 static char digits[] = "0123456789ABCDEF";
-
+void _main(){
+  extern int main();
+  exit(main());
+}
 
 char*
 strcpy(char *s, const char *t)
@@ -242,3 +245,4 @@ printf(const char *fmt, ...)
   va_start(ap, fmt);
   vprintf(1, fmt, ap);
 }
+

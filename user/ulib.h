@@ -13,3 +13,4 @@ void* memcpy(void *dst, const void *src, uint64_t n);
 void vprintf(int fd, const char *fmt, va_list ap);
 void fprintf(int fd, const char *fmt, ...);
 void printf(const char *fmt, ...);
+void _main();

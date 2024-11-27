@@ -50,7 +50,7 @@ bget(uint_t dev, uint_t blockno)
       b->refcnt++;
       lm_unlock(&bcache.lock);
       lm_P(&b->sem);
-    //   b->holding_task = getpid();
+      b->holding_task = getpid();
       return b;
     }
   }
@@ -65,7 +65,7 @@ bget(uint_t dev, uint_t blockno)
       b->refcnt = 1;
       lm_unlock(&bcache.lock);
       lm_P(&b->sem);
-    //   b->holding_task = getpid();
+      b->holding_task = getpid();
       return b;
     }
   }
@@ -91,8 +91,8 @@ bread(uint_t dev, uint_t blockno)
 void
 bwrite(struct buf *b)
 {
-//   if(b->holding_task != getpid())
-//     panic("bwrite");
+  if(b->holding_task != getpid())
+    panic("bwrite");
   virtio_disk_rw(b, 1);
 }
 
@@ -101,8 +101,8 @@ bwrite(struct buf *b)
 void
 brelse(struct buf *b)
 {
-//   if(b->holding_task != getpid())
-//     panic("brelse");
+  if(b->holding_task != getpid())
+    panic("brelse");
 
   lm_V(&b->sem);
 

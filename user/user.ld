@@ -1,13 +1,11 @@
 OUTPUT_ARCH( "riscv" )
-ENTRY( _start )
+ENTRY( _main )
 
 
 SECTIONS
 {
- . = 0x0;
  
   .text : {
-    user/start.o(_start)
     *(.text .text.*)
   }
 

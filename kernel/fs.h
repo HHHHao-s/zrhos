@@ -6,7 +6,7 @@
 #define BSIZE 1024  // block size
 
 // Disk layout:
-// [ boot block | super block | log | inode blocks |
+// [ boot block | super block | inode blocks |
 //                                          free bit map | data blocks]
 //
 // mkfs computes the super block and builds an initial file system. The
@@ -16,17 +16,22 @@ struct superblock {
   uint_t size;         // Size of file system image (blocks)
   uint_t nblocks;      // Number of data blocks
   uint_t ninodes;      // Number of inodes.
-  uint_t nlog;         // Number of log blocks
-  uint_t logstart;     // Block number of first log block
   uint_t inodestart;   // Block number of first inode block
   uint_t bmapstart;    // Block number of first free map block
 };
 
-#define FSMAGIC 0x10203040
+#define FSMAGIC 0x0048525a
 
 #define NDIRECT 12
 #define NINDIRECT (BSIZE / sizeof(uint_t))
 #define MAXFILE (NDIRECT + NINDIRECT)
+
+enum {
+  T_NONE = 0, // None
+  T_DIR = 1,   // Directory
+  T_FILE = 2,  // File
+  T_DEVICE = 3 // Device
+};
 
 // On-disk inode structure
 struct dinode {
@@ -35,8 +40,9 @@ struct dinode {
   short minor;          // Minor device number (T_DEVICE only)
   short nlink;          // Number of links to inode in file system
   uint_t size;            // Size of file (bytes)
-  uint_t addrs[NDIRECT+1];   // Data block addresses
+  uint_t addrs[NDIRECT+1];   // Data block addresses, the last one is indirect block
 };
+// indirect block contains block numbers of data blocks
 
 // Inodes per block.
 #define IPB           (BSIZE / sizeof(struct dinode))
@@ -58,3 +64,5 @@ struct dirent {
   char name[DIRSIZ];
 };
 
+// dirent per block
+#define DPB (BSIZE/sizeof(struct dirent))
