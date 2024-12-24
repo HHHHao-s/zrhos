@@ -140,6 +140,7 @@ void usertrap(void){
         syscall();
         
     }else{
+        printf("scause %d\n", r_scause());
         handle_trap();
     }
 

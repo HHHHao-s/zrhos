@@ -141,6 +141,7 @@ int dirappend(dinode *dip, dirent ent){
         dirent *d = (dirent*)b->data + i%DPB;
         if(d->inum == 0){
             *d = ent;
+            dip->size += sizeof(dirent);
             brelse(b);
             return 0;
         }
@@ -169,6 +170,7 @@ int dirappend(dinode *dip, dirent ent){
         dirent *d = (dirent*)b->data + i%DPB;
         if(d->inum == 0){
             *d = ent;
+            dip->size += sizeof(dirent);
             brelse(b);
             brelse(indirect);
             return 0;

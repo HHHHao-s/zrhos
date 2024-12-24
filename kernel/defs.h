@@ -142,6 +142,9 @@ void vm_unmap(pagetable_t pagetable, uint64_t va, uint64_t npages, int do_free);
 int uvm_map(pagetable_t pagetable, uint64_t va, uint64_t pa, uint64_t sz, int perm, int remap);
 void free_pagetable(pagetable_t pagetable, int do_free);
 void copy_pagetable(pagetable_t from , pagetable_t to, int cover);
+int copyinstr(pagetable_t pagetable, char *dst, uint64_t srcva, uint64_t max_len);
+int fetchaddr(pagetable_t pagetable, uint64_t va, uint64_t *slot);
+int fetchstr(pagetable_t pagetable, uint64_t srcva, char *dst, int max);
 
 // ------------------- syscall.c -------------------
 
@@ -149,17 +152,19 @@ void syscall(void);
 
 // ------------------- mmap.c ----------------------
 
+typedef struct MmapNode MmapNode_t;
+typedef struct Mmap Mmap_t;
 uint64_t mmap(task_t *t, uint64_t addr, uint64_t sz, uint64_t perm, uint64_t flag, int alloc_phy);
 int sys_mmap();
-void mmap_create(task_t *t);
-void mmap_destroy(task_t *t);
+void mmap_destroy(Mmap_t *obj);
 void handle_pagefault();
 int uvm_mappages(pagetable_t pagetable, uint64_t va, uint64_t sz, int perm);
 void handle_accessfault();
 void copy_mmap(task_t *t, task_t *nt);
 void mmap_init();
 int sys_munmap();
-
+uint64_t mmap_by_obj(Mmap_t *obj, pagetable_t pagetable, uint64_t addr, uint64_t sz, uint64_t perm, uint64_t flag, int alloc_phy);
+Mmap_t *mmap_create(task_t *t);
 
 // ------------------- file.c -------------------
 struct file;
@@ -188,3 +193,34 @@ void virtio_disk_init(void);
 void virtio_disk_rw(struct buf *b, int write);
 void virtio_disk_intr();
 
+
+// ------------------- fs.c -------------------
+typedef struct inode inode_t;
+void fs_init(int dev);
+uint_t balloc();
+inode_t *ialloc(uint_t type);
+int iupdate(inode_t *ip);
+void bfree(uint_t dev, uint_t b);
+int itrunc(inode_t *ip);
+int ilock(inode_t *ip);
+int iunlock(inode_t *ip);
+int iput(inode_t *ip);
+int iunlockput(inode_t *ip);
+uint_t bmap(inode_t *ip, uint_t start);
+int writei(inode_t *ip, int user_src, uint64_t src, uint_t off, uint_t n);
+int readi(inode_t *ip, int user_dst, uint64_t dst, uint_t off, uint_t n);
+inode_t *idup(inode_t *ip);
+int namecmp(const char *s, const char *t);
+struct inode* dirlookup(struct inode *dp, char *name, uint_t *poff);
+struct inode* namei(char *path);
+struct inode* nameiparent(char *path, char *name);
+
+// ------------------- exec.c -------------------
+
+int
+exec(char *path, char **argv);
+
+
+// ------------------- sysfile.c -------------------
+
+int sys_exec();

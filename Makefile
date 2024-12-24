@@ -24,6 +24,8 @@ OBJS = \
   $K/fs.o \
   $K/bio.o \
   $K/virtio_disk.o \
+  $K/exec.o \
+  $K/sysfile.o \
 
 
 ifndef TOOLPREFIX

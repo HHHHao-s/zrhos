@@ -122,17 +122,18 @@ static void mmap_freef(struct rb_node *n){
     mmap_free(n);
 }
 
-void mmap_create(task_t *t){
-    t->mmap_obj = (struct Mmap*)mem_malloc(sizeof(struct Mmap));
-    rb_init(&t->mmap_obj->tree, 0, compf, 0);
+Mmap_t *mmap_create(task_t *t){
+    Mmap_t *obj = (Mmap_t*)mem_malloc(sizeof(Mmap_t));
+    rb_init(&obj->tree, 0, compf, 0);
+    return obj;
 }
 
-void mmap_destroy(task_t *t){
-    if(t->mmap_obj == 0)
+
+void mmap_destroy(Mmap_t *obj){
+    if(obj == 0)
         return;
-    rb_clear_free(&t->mmap_obj->tree, mmap_freef);
-    mem_free(t->mmap_obj);
-    t->mmap_obj = 0;
+    rb_clear_free(&obj->tree, mmap_freef);
+    mem_free(obj);
 }
 
 struct rb_node *mmap_alloc(uint64_t addr,
@@ -192,7 +193,7 @@ int uvm_mappages(pagetable_t pagetable, uint64_t va, uint64_t sz, int perm){
 // can be used by the kernel to allocate memory for the user
 // if alloc_phy is 1, allocate physical memory and increase the reference count
 // anynonous memory with addr is allowed
-uint64_t mmap(task_t *t, uint64_t addr, uint64_t sz, uint64_t perm, uint64_t flag, int alloc_phy){
+uint64_t mmap_by_obj(Mmap_t *obj, pagetable_t pagetable, uint64_t addr, uint64_t sz, uint64_t perm, uint64_t flag, int alloc_phy){
     if((flag & MAP_PRIVATE) &&( flag & MAP_SHARED)){
         panic("mmap: MAP_PRIVATE and MAP_SHARED can't be used together");
     }
@@ -202,8 +203,6 @@ uint64_t mmap(task_t *t, uint64_t addr, uint64_t sz, uint64_t perm, uint64_t fla
     }
     addr = PGROUNDDOWN(addr);
     sz = PGROUNDUP(sz);
-
-    Mmap_t *obj = (Mmap_t*)t->mmap_obj;
 
     if(addr == 0 && ((flag & MAP_ZERO )== 0) && (flag & MAP_ANONYMOUS)){
         addr = VA_ANYNOMOUS+obj->high_level;
@@ -222,10 +221,15 @@ uint64_t mmap(task_t *t, uint64_t addr, uint64_t sz, uint64_t perm, uint64_t fla
         panic("mmap failed");
     }
     if(alloc_phy){
-        uvm_mappages(t->pagetable, addr, sz, perm);
+        uvm_mappages(pagetable, addr, sz, perm);
     }
 
     return addr;
+}
+
+// map task t's memory
+uint64_t mmap(task_t *t, uint64_t addr, uint64_t sz, uint64_t perm, uint64_t flag, int alloc_phy){
+    return mmap_by_obj(t->mmap_obj, t->pagetable, addr, sz, perm, flag, alloc_phy);
 }
 
 MmapNode_t *mmap_find(Mmap_t *obj, uint64_t addr){

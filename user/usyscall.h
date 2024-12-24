@@ -8,3 +8,4 @@ uint64_t write(int fd, char*, uint64_t);
 uint64_t read(int fd, char*, uint64_t);
 int getpid();
 int kill(int);
+int exec(const char *pathname, char *const argv[]);

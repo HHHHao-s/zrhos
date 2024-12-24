@@ -4,18 +4,28 @@
 #include "param.h"
 device_t devsw[DEV_MAX];
 
-file_t ftable[NOFILE];
+struct{
+    lm_lock_t lock;
+    file_t files[NOFILE];
+}ftable;
+
+
 
 file_t *filealloc(void){
 
+    lm_lock(&ftable.lock);
+
     for (int i = 0; i < NOFILE; i++)
     {
-        if (ftable[i].ref == 0)
+        if (ftable.files[i].ref == 0)
         {
-            ftable[i].ref = 1;
-            return &ftable[i];
+            ftable.files[i].ref = 1;
+            lm_unlock(&ftable.lock);
+            return &ftable.files[i];
         }
     }
+
+    lm_unlock(&ftable.lock);
     return 0;
 }
 

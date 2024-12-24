@@ -25,6 +25,7 @@ static int (*syscalls[])(void)={
     [SYS_read] = sys_read,
     [SYS_getpid] = sys_getpid,
     [SYS_kill] = sys_kill,
+    [SYS_exec] = sys_exec,
 };
 
 void syscall(){

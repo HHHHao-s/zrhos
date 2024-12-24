@@ -88,6 +88,8 @@ typedef struct task
 
     file_t *ofile[NOFILE]; // Open files
 
+    struct inode *cwd; // Current directory
+
 }task_t;
 
 

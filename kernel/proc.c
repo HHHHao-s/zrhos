@@ -49,6 +49,12 @@ void ret_entry(){
   task_t *t = mycpu()->current;
   lm_unlock(&t->lock);
 
+  static int first = 1;
+  if(first){
+    first = 0;
+    fs_init(ROOTDEV);
+  }
+
   usertrapret();
 
 }
@@ -146,7 +152,7 @@ task_t * utask_create(){
 
   lm_sem_init(&t->sons_sem, 0);
 
-  mmap_create(t);
+  t->mmap_obj = mmap_create(t);
 
   t->ofile[0] = console_file;
   t->ofile[1] = console_file;
@@ -275,6 +281,7 @@ void free_task(task_t *t){
   if(t->pagetable)
     free_pagetable(t->pagetable, 0);
   t->pagetable = 0;
+
   if(t->trapframe)
     mem_free(t->trapframe);
   t->trapframe = 0;
@@ -282,7 +289,9 @@ void free_task(task_t *t){
   t->state = DEAD;
   t->parent = 0;
   // all allocated memory should be freed in mmap_destroy
-  mmap_destroy(t);
+  if(t->mmap_obj)
+    mmap_destroy(t->mmap_obj);
+  t->mmap_obj = 0;
 }
 
 // should be called with the lock of waitlock

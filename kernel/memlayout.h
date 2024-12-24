@@ -60,3 +60,6 @@
 // anynomous mmap will start from here
 // middle of the address space
 #define VA_ANYNOMOUS (MAXVA >> 1)
+
+// 2 pages
+#define VA_USERSTACK (VA_ANYNOMOUS - 2*PGSIZE)

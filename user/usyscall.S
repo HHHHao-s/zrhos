@@ -54,3 +54,9 @@ kill:
     li a7, SYS_kill
     ecall
     ret
+
+.global exec
+exec:
+    li a7, SYS_exec
+    ecall
+    ret

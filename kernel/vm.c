@@ -120,6 +120,7 @@ vm_unmap(pagetable_t pagetable, uint64_t va, uint64_t npages, int do_free)
 // Look up a virtual address, return the physical address,
 // or 0 if not mapped.
 // Can only be used to look up user pages.
+// va can be not page-aligned
 uint64_t
 walkaddr(pagetable_t pagetable, uint64_t va)
 {
@@ -137,7 +138,7 @@ walkaddr(pagetable_t pagetable, uint64_t va)
   if((*pte & PTE_U) == 0)
     return 0;
   pa = PTE2PA(*pte);
-  return pa;
+  return pa | (va & 0xFFF);
 }
 
 pte_t* walk(pagetable_t pagetable, uint64_t va, int alloc){
@@ -166,20 +167,24 @@ int is_pagetable(pte_t pte){
 
 // free all memory referenced by page table
 void free_pagetable(pagetable_t pagetable, int do_free){
+    if(pagetable == 0)
+      return;
     for(int i=0;i<512;i++){
         pte_t pte = pagetable[i];
         if(is_pagetable(pte)){
             // this PTE points to a lower-level page table.
             uint64_t child = PTE2PA(pte);
             free_pagetable((pagetable_t)child, do_free);
-            mem_free((void*)child);
+            
             pagetable[i] = 0;
         } else if(pte & PTE_V){
+            // free physical address
             uint64_t pa = PTE2PA(pte);
             if(do_free)
                 mem_free((void*)pa);
         }
     }
+    mem_free(pagetable);
 }
 
 
@@ -282,3 +287,53 @@ copyin(pagetable_t pagetable, char *dst, uint64_t srcva, uint64_t len)
   return 0;
 }
 
+int copyinstr(pagetable_t pagetable, char *dst, uint64_t srcva, uint64_t max_len){
+
+  uint64_t n, va0, pa0;
+  int len = 0;
+  while(len < max_len){
+    va0 = PGROUNDDOWN(srcva);
+    pa0 = walkaddr(pagetable, va0);
+    if(pa0 == 0)
+      return -1;
+    n = PGSIZE - (srcva - va0);
+    if(n > max_len - len)
+      n = max_len - len;
+    for(int i=0;i<n;i++){
+      char c;
+      memmove(&c, (void *)(pa0 + (srcva - va0)), 1);
+      if(c == 0){
+        dst[len] = 0;
+        return len;
+      }
+      dst[len++] = c;
+      srcva++;
+    }
+  }
+  return -1;
+
+}
+
+int fetchaddr(pagetable_t pagetable, uint64_t va, uint64_t *slot){
+  uint64_t pa = walkaddr(pagetable, va);
+  if(pa == 0)
+    return -1;
+  *slot = *(uint64_t*)pa;
+  return 0;
+}
+
+int fetchstr(pagetable_t pagetable, uint64_t srcva, char *dst, int max){
+  int len = 0;
+  while(len < max){
+    char c;
+    if(copyin(pagetable, &c, srcva, 1) < 0)
+      return -1;
+    if(c == 0){
+      dst[len] = 0;
+      return len;
+    }
+    dst[len++] = c;
+    srcva++;
+  }
+  return -1;
+}

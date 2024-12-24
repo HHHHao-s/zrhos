@@ -9,3 +9,5 @@
 #define SYS_read 8
 #define SYS_getpid 9
 #define SYS_kill 10
+#define SYS_exec 11
+
