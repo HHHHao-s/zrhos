@@ -83,6 +83,8 @@ void user_init(){
   t->trapframe->sp = high + PGSIZE;// top of the stack
 
   t->state = RUNNABLE; 
+  
+  t->cwd = namei("/");
 
   lm_unlock(&t->lock);
 
@@ -154,10 +156,7 @@ task_t * utask_create(){
 
   t->mmap_obj = mmap_create(t);
 
-  t->ofile[0] = console_file;
-  t->ofile[1] = console_file;
 
-  
 
   return t;
 
@@ -292,6 +291,10 @@ void free_task(task_t *t){
   if(t->mmap_obj)
     mmap_destroy(t->mmap_obj);
   t->mmap_obj = 0;
+
+  if(t->cwd)
+    iunlockput(t->cwd);
+  t->cwd = 0;
 }
 
 // should be called with the lock of waitlock

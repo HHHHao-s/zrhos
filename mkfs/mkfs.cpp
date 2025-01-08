@@ -10,6 +10,10 @@
 #include <unordered_map>
 #include <map>
 #include <string>
+#include <vector>
+#include "kernel/file.h"
+#include "kernel/param.h"
+
 
 #define ROUNDUP(a, sz)  (((a) + (sz) - 1) & ~((sz) - 1))
 
@@ -23,7 +27,7 @@ struct buf{
 
 uint8_t *addr;
 map<uint_t, buf> bufmap; // cache
-
+dinode *root_dip=nullptr;
 
 // Disk layout:
 // [ boot block | super block | inode blocks |
@@ -187,6 +191,45 @@ int dirappend(dinode *dip, dirent ent){
     return -1;
 }
 
+
+std::vector<device_t> devs={
+    {(device_t){.name="console", .id=CONSOLE}}
+};
+
+int dirlink(dinode *dip, std::string name, int inum){
+
+    dirent ent={.inum=inum};
+    strncpy(ent.name, name.c_str(), 14);
+    return dirappend(dip, ent);
+
+}
+
+void add_dev(){
+    int inum=0;
+
+    dinode* inode = ialloc(T_DIR, &inum);
+    inode->nlink= 1;
+
+    dirlink(root_dip, "dev", inum);
+    dirlink(inode, ".", inum);
+    dirlink(inode, "..", 1);
+    root_dip->nlink++;
+    
+    for(const auto& dev: devs){
+        // create device file
+        int dev_inum = 0;
+        dinode *dev_inode = ialloc(T_DEVICE, &dev_inum);
+        if(dev_inode==nullptr){
+            throw exception();
+        }
+        dirlink(inode,dev.name, dev_inum );
+    }
+
+
+}
+
+
+
 int main(int argc, char **argv){
 
     if(argc < 2){
@@ -202,25 +245,26 @@ int main(int argc, char **argv){
     // 256MB
     ftruncate(fd, 256*1024*1024);
     
-    addr =(uint8_t*) mmap(NULL, 256*1024*1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    addr =(uint8_t*) mmap((void*)NULL, 256*1024*1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     close(fd);
+    // clear whole file
+    memset(addr, 0, 256*1024*1024);
+     
+     
     // write superblock
     bwrite(1, &sb);
     uint_t datastart = get_datastart();
     cout << "datastart: " << datastart << endl;
     // write root inode
     int inum = 0;   
-    dinode *root_dip = ialloc(T_DIR, &inum);
+    root_dip = ialloc(T_DIR, &inum);
     root_dip->nlink = 1;
     dirent ent;
-    ent.inum = inum; // the inum of root inode if 1 
+    ent.inum = inum; // the inum of root inode is 1 
     strcpy(ent.name, ".");
     dirappend(root_dip, ent);
-    strcpy(ent.name, "..");
-    dirappend(root_dip, ent);
-    
-
-    cout << "root inode done" << endl;
+    // no ..
+    cout << "root inum:" << inum << endl;
     // write files 
     for(int i=2;i<argc;i++){
         string name = argv[i];
@@ -239,7 +283,7 @@ int main(int argc, char **argv){
         cout << name << " size " << size << endl;
 
         dinode *dip = ialloc(T_FILE, &inum);
-        cout << "ialloc done" << endl;
+        cout  << "ialloc inum:" << inum << endl;
         dip->nlink = 1;    
         dip->size = size;
 
@@ -291,6 +335,10 @@ int main(int argc, char **argv){
         fclose(f);
 
     }
+
+    add_dev();
+
+
     munmap(addr, 256*1024*1024);
 
 

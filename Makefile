@@ -103,11 +103,12 @@ $U/%.o: $U/%.S
 
 UPROGS =\
 	$U/_test \
+	$U/_sh \
 
 
 mkfs/mkfs: mkfs/mkfs.cpp $(UPROGS)
 	g++ -Wall -g -I. -fsanitize=address -o mkfs/mkfs mkfs/mkfs.cpp
-	mkfs/mkfs fs.img $(UPROGS) > /dev/null
+	mkfs/mkfs fs.img $(UPROGS)
 
 _%: %.o $(ULIB)
 	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^

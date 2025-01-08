@@ -7,7 +7,7 @@
 #include "proc.h"
 #include "buf.h"
 
-
+static semophore_t fs_lock;
 
 struct superblock sb;
 
@@ -45,6 +45,7 @@ void fs_init(int dev){
         lm_sem_init(&itable.inode[i].lock, 1);
     }
     lm_lockinit(&itable.lock, "itable");
+    lm_sem_init(&fs_lock, 1);
 }
 
 
@@ -111,7 +112,7 @@ iget(uint_t dev, uint_t inum)
 
 
 // alloc a new inode corresponding to the given type
-inode_t *ialloc(uint_t type){
+inode_t *ialloc(uint_t dev, uint_t type){
 
     struct buf *b = NULL;
     for(uint_t i=1; i<sb.ninodes; i++){
@@ -119,11 +120,11 @@ inode_t *ialloc(uint_t type){
             if(b!=NULL){
                 brelse(b);
             }
-            b = bread(ROOTDEV,IBLOCK(i, sb));
+            b = bread(dev,IBLOCK(i, sb));
         }
         struct dinode *dip = (struct dinode *)(b->data) + i%IPB;
         if(dip->type == 0){
-            inode_t *ip = iget(ROOTDEV, i);
+            inode_t *ip = iget(dev, i);
             ip->type = type;
             brelse(b);
             return ip;
@@ -510,4 +511,54 @@ struct inode*
 nameiparent(char *path, char *name)
 {
   return namex(path, 1, name);
+}
+
+int dirlink(inode_t *dip, char *name, int inum){
+
+
+    panic_on(dip->type != T_DIR, "add link in non dir");
+
+    if(dirlookup(dip, name, NULL)!=0){
+        printf("entry exist\n");
+        return -1;
+    }
+
+    struct buf *b = NULL;
+    int ndirect=0;
+    for(int i=0;i<NDIRECT*DPB;i++){
+        if(b == NULL || i>=((ndirect+1)*DPB)){
+            if(b!=NULL){
+                brelse(b);
+                ndirect++;
+            }           
+            if(dip->addrs[ndirect] == 0){
+                dip->addrs[ndirect] = balloc();
+            }
+            b = bread(dip->dev, dip->addrs[ndirect]);
+        }
+        struct dirent *d = (struct dirent*)b->data + i%DPB;
+        if(d->inum == 0){
+            d->inum = inum;
+            strncpy(d->name, name, sizeof(d->name));
+            dip->size += sizeof(struct dirent);
+            brelse(b);
+            iupdate(dip);
+            return 0;
+        }
+        
+    } 
+    if(b!=NULL){
+        brelse(b);
+    }
+    return -1;
+
+}
+
+void begin_op(){
+    // start a transaction
+    lm_P(&fs_lock);
+}   
+
+void end_op(){
+    lm_V(&fs_lock);
 }

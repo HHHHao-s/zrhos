@@ -22,6 +22,7 @@ int flags2perm(int flags)
 int
 exec(char *path, char **argv)
 {
+  begin_op();
 
   int i=0, off=0;
   uint64_t argc=0, sp=0, ustack[MAXARG], stackbase=0;
@@ -123,6 +124,7 @@ exec(char *path, char **argv)
   t->trapframe->epc = elf.entry;  // initial program counter = main
   t->trapframe->sp = sp; // initial stack pointer
 
+  end_op();
 
   return 0; 
 
@@ -136,6 +138,7 @@ exec(char *path, char **argv)
   if(ip){
     iunlockput(ip);
   }
+  end_op();
   return -1;
 }
 

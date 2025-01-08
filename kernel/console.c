@@ -21,7 +21,7 @@
 
 extern device_t devsw[];
 
-file_t * console_file;
+// file_t * console_file;
 
 
 #define BACKSPACE 0x100
@@ -196,7 +196,7 @@ console_init(void)
     devsw[CONSOLE].write = console_write;
 
   // this file will never be closed
-    console_file = filealloc();
-  *console_file = (file_t){.ref = 1, .type = FD_DEVICE, .readable = 1, .writable = 1, .major = CONSOLE};
+  //   console_file = filealloc();
+  // *console_file = (file_t){.ref = 1, .type = FD_DEVICE, .readable = 1, .writable = 1, .major = CONSOLE};
 
 }

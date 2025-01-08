@@ -168,15 +168,15 @@ Mmap_t *mmap_create(task_t *t);
 
 // ------------------- file.c -------------------
 struct file;
-int sys_write();
-int sys_read();
+
 struct file *filealloc(void);
+void fileclose(struct file* f);
 
 // ------------------- console.c -------------------
 
 void console_init();
 void console_intr(int c);
-extern struct file *console_file;
+// extern struct file *console_file;
 
 // ------------------- bio.c -------------------
 struct buf;
@@ -198,7 +198,7 @@ void virtio_disk_intr();
 typedef struct inode inode_t;
 void fs_init(int dev);
 uint_t balloc();
-inode_t *ialloc(uint_t type);
+inode_t *ialloc(uint_t dev,uint_t type);
 int iupdate(inode_t *ip);
 void bfree(uint_t dev, uint_t b);
 int itrunc(inode_t *ip);
@@ -214,6 +214,9 @@ int namecmp(const char *s, const char *t);
 struct inode* dirlookup(struct inode *dp, char *name, uint_t *poff);
 struct inode* namei(char *path);
 struct inode* nameiparent(char *path, char *name);
+int dirlink(inode_t *dip, char *name, int inum);
+void begin_op();
+void end_op();
 
 // ------------------- exec.c -------------------
 
@@ -224,3 +227,6 @@ exec(char *path, char **argv);
 // ------------------- sysfile.c -------------------
 
 int sys_exec();
+int sys_write();
+int sys_read();
+int sys_open();

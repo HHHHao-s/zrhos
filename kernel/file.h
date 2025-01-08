@@ -2,8 +2,11 @@
 
 #include "types.h"
 #include "fs.h"
-#include "defs.h"
 #include "lock.h"
+#include "fctrl.h"
+
+
+
 struct device {
   const char *name;
   int id;

@@ -60,3 +60,9 @@ exec:
     li a7, SYS_exec
     ecall
     ret
+
+.global open
+open:
+    li a7, SYS_open
+    ecall
+    ret

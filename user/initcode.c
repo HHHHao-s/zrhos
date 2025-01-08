@@ -1,7 +1,7 @@
 #include "kernel/mmap.h"
 #include "usyscall.h"
 #include "ulib.h"
-
+#include "kernel/fctrl.h"
 
 
 // test that fork fails gracefully
@@ -124,13 +124,18 @@ forkfork(char *s)
 
 
 int main(){
-    printf("hello world\n");
+    // printf("hello world\n");
     // consoletest("consoletest");
     // forktest("forktest");
     // reparent("reparent");
     // forkfork("forkfork");
-    char *argv[1] = {"test"};
-    exec("/test", argv);
+    // char *argv[4] = {"/test", "1", "2", "3"};
+    // exec("/test", argv);
+    open("/dev/console", O_RDONLY);// stdin
+    open("/dev/console", O_WRONLY);// stdout
+    open("/dev/console", O_WRONLY);// stderr
+    char *argv[1] = {"/sh"};
+    exec("/sh", argv);
 
 
 }
