@@ -66,3 +66,9 @@ open:
     li a7, SYS_open
     ecall
     ret
+
+.global chdir
+chdir:
+    li a7, SYS_chdir
+    ecall
+    ret

@@ -11,8 +11,7 @@
 #define SYS_kill 10
 #define SYS_exec 11
 #define SYS_open 12
-// #define SYS_chdir 13
-// #define SYS_fstat 12
+#define SYS_chdir 13
 
 // #define SYS_open 1
 // #define SYS_close 1

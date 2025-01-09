@@ -1,6 +1,7 @@
 #include "kernel/types.h"
 #include <stdarg.h>
 #include "usyscall.h"
+#include "kernel/mmap.h"
 
 static char digits[] = "0123456789ABCDEF";
 void _main(){
@@ -246,3 +247,17 @@ printf(const char *fmt, ...)
   vprintf(1, fmt, ap);
 }
 
+void* malloc(size_t n){
+
+  size_t total = n + sizeof(size_t);
+  void *ptr = (void*)mmap(0, n, PERM_R| PERM_W, MAP_PRIVATE | MAP_ANONYMOUS);
+  if(ptr == (void*)-1)
+    return NULL;
+  *((size_t*)((uint8_t*)ptr+ total-sizeof(size_t))) = total;
+  return ptr;
+
+}
+
+void free(void *ptr){
+  munmap((uint64_t)ptr, *((size_t*)(ptr-sizeof(size_t))));
+}

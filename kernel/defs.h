@@ -171,6 +171,7 @@ struct file;
 
 struct file *filealloc(void);
 void fileclose(struct file* f);
+struct file * filedup(struct file *f);
 
 // ------------------- console.c -------------------
 
@@ -230,3 +231,4 @@ int sys_exec();
 int sys_write();
 int sys_read();
 int sys_open();
+int sys_chdir();

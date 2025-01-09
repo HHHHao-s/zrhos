@@ -14,3 +14,5 @@ void vprintf(int fd, const char *fmt, va_list ap);
 void fprintf(int fd, const char *fmt, ...);
 void printf(const char *fmt, ...);
 void _main();
+void* malloc(size_t n);
+void free(void *p);

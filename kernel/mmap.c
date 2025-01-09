@@ -162,7 +162,10 @@ int sys_mmap(){
   uint64_t sz = t->trapframe->a1;
   uint64_t perm = t->trapframe->a2;
   uint64_t flag = t->trapframe->a3;
-  t->trapframe->a0 = mmap(t,addr, sz, perm, flag,0 );
+   
+  uint64_t ret = mmap(t,addr, sz, perm, flag,0 );
+  printf("ret: %p", ret);
+  t->trapframe->a0 = ret;
   return 0;
 }
 
@@ -170,6 +173,10 @@ int sys_mmap(){
 // and increase the reference count of the physical memory
 int uvm_mappages(pagetable_t pagetable, uint64_t va, uint64_t sz, int perm){
     uint64_t a, last;
+    if(sz==0){
+        return 0;
+    }
+
     a = PGROUNDDOWN(va);
     last = PGROUNDDOWN(va + sz - 1);
     for(;;){
@@ -204,7 +211,9 @@ uint64_t mmap_by_obj(Mmap_t *obj, pagetable_t pagetable, uint64_t addr, uint64_t
     addr = PGROUNDDOWN(addr);
     sz = PGROUNDUP(sz);
 
-    if(addr == 0 && ((flag & MAP_ZERO )== 0) && (flag & MAP_ANONYMOUS)){
+    // using random anonymous memory
+    int rand_memory = (addr == 0 && ((flag & MAP_ZERO )== 0) && (flag & MAP_ANONYMOUS));
+    if(rand_memory){
         addr = VA_ANYNOMOUS+obj->high_level;
     }
 
@@ -214,7 +223,7 @@ uint64_t mmap_by_obj(Mmap_t *obj, pagetable_t pagetable, uint64_t addr, uint64_t
     struct rb_node *ret = rb_insert(&obj->tree, node, &out);
   
     if(out != 0 && ret!=rb_head(&obj->tree)){
-        if(addr == 0 && ((flag & MAP_ZERO )== 0) && (flag & MAP_ANONYMOUS))
+        if(rand_memory)
             obj->high_level += sz;
         
     }else{

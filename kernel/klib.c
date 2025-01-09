@@ -7,6 +7,8 @@
 
 static char buf[4096];
 
+static int kernel_debug=1;
+
 static void putstr(const char *s)
 {
   while (*s)
@@ -34,7 +36,7 @@ int printf(const char *fmt, ...)
 {
   va_list ap;
   va_start(ap, fmt);
-  char buf[1024];
+  char buf[1024]="";
   vsprintf(buf, fmt, ap);
   va_end(ap);
   putstr(buf);
@@ -43,7 +45,9 @@ int printf(const char *fmt, ...)
 
 int vsprintf(char *out, const char *fmt, va_list ap)
 {
-  
+  if(kernel_debug==0){
+    return 0;
+  }
   // char buf[1024];
   char *pout = out;
   for (const char *p = fmt; *p;)

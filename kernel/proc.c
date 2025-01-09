@@ -292,8 +292,17 @@ void free_task(task_t *t){
     mmap_destroy(t->mmap_obj);
   t->mmap_obj = 0;
 
+  
+
+    // close file
+  for(int i=0;i<NOFILE;i++){
+    if(t->ofile[i]){
+      fileclose(t->ofile[i]);
+      t->ofile[i] = 0;
+    }
+  }
   if(t->cwd)
-    iunlockput(t->cwd);
+    iput(t->cwd);
   t->cwd = 0;
 }
 
@@ -324,6 +333,8 @@ void exit(int status){
   }
   reparent(t);
   lm_unlock(&wait_lock);
+
+  
 
   swtch(&t->context, &mycpu()->context);
   // won't return
@@ -434,7 +445,9 @@ int sys_exit(){
 }
 
 int sys_fork(){
+  
   task_t *nt = utask_create();
+  // holding nt->lock
 
   task_t *t = mytask();
 
@@ -458,6 +471,19 @@ int sys_fork(){
 
   // set the parent
   nt->parent = t;
+
+  // copy the current directory
+  if(t->cwd){
+    nt->cwd = idup(t->cwd);
+  }
+
+  // copy the open files
+
+  for(int i=0;i<NOFILE;i++){
+    if(t->ofile[i]){
+      nt->ofile[i] = filedup(t->ofile[i]);
+    }
+  }
 
   // release the lock of the child
   lm_unlock(&nt->lock);

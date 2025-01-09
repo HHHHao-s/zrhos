@@ -26,15 +26,16 @@ static int (*syscalls[])(void)={
     [SYS_getpid] = sys_getpid,
     [SYS_kill] = sys_kill,
     [SYS_exec] = sys_exec,
-    [SYS_open] = sys_open
+    [SYS_open] = sys_open,
+    [SYS_chdir] = sys_chdir,
 };
 
 void syscall(){
-    // printf("syscall\n");
+
     task_t *t = mytask();
     if(t == 0)
         return;
-
+    // printf("syscall %d\n", t->trapframe->a7);
     int num = t->trapframe->a7;
     if(num > 0 && num < (sizeof(syscalls)/sizeof(syscalls[0])) && syscalls[num]){
         syscalls[num]();

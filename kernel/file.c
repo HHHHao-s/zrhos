@@ -31,8 +31,13 @@ file_t *filealloc(void){
 
 void fileclose(file_t* f){
     lm_lock(&ftable.lock);
-    f->ref=0;
+    f->ref--;
     lm_unlock(&ftable.lock);
 }
 
-
+file_t* filedup(file_t *f){
+    lm_lock(&ftable.lock);
+    f->ref++;
+    lm_unlock(&ftable.lock);
+    return f;
+}

@@ -268,7 +268,9 @@ sys_open(void)
     iunlock(ip);
     end_op();
 
-    return fd;
+    mytask()->trapframe->a0 = fd;
+
+    return 0;
 }
 
 int sys_write(){
@@ -289,6 +291,20 @@ int sys_write(){
 
         device_t *dev = &devsw[f->major];
         t->trapframe->a0= dev->write(dev, 1, (uint64_t)buf, count);
+    }else if(f->type==FD_INODE){
+        begin_op();
+        ilock(f->ip);
+        if(f->writable == 0){
+            iunlock(f->ip);
+            return -1;
+        }
+        int n = writei(f->ip, 1, (uint64_t)buf, f->off, count);
+        if(n > 0)
+            f->off += n;
+        iunlock(f->ip);
+        end_op();
+        t->trapframe->a0 = n;
+
     }
     return -1;
 }   
@@ -311,6 +327,19 @@ int sys_read(){
 
         device_t *dev = &devsw[f->major];
         t->trapframe->a0= dev->read(dev, 1, (uint64_t)buf, count);
+    }else if(f->type == FD_INODE){
+
+        ilock(f->ip);
+        if(f->readable == 0){
+            iunlock(f->ip);
+            return -1;
+        }
+        int n = readi(f->ip, 1, (uint64_t)buf, f->off, count);
+        if(n > 0)
+            f->off += n;
+        iunlock(f->ip);
+        t->trapframe->a0 = n;
+
     }
     return -1;
 }

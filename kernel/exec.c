@@ -22,8 +22,6 @@ int flags2perm(int flags)
 int
 exec(char *path, char **argv)
 {
-  begin_op();
-
   int i=0, off=0;
   uint64_t argc=0, sp=0, ustack[MAXARG], stackbase=0;
   struct elfhdr elf;

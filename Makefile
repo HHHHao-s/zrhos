@@ -104,6 +104,7 @@ $U/%.o: $U/%.S
 UPROGS =\
 	$U/_test \
 	$U/_sh \
+	$U/_ls \
 
 
 mkfs/mkfs: mkfs/mkfs.cpp $(UPROGS)
