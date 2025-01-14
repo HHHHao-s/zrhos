@@ -27,6 +27,9 @@ void handle_external(){
     }else if(irq == VIRTIO0_IRQ){
         // printf("virtio disk interrupt\n");
         virtio_disk_intr();
+    }else if(irq == VIRTIO1_IRQ){
+        // printf("virtio gpu interrupt\n");
+        virtio_gpu_intr();
     }
     plic_complete(irq);
 }

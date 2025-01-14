@@ -53,6 +53,7 @@ void ret_entry(){
   if(first){
     first = 0;
     fs_init(ROOTDEV);
+    virtio_gpu_init();
   }
 
   usertrapret();

@@ -54,6 +54,9 @@ static struct disk {
   struct virtio_blk_req ops[NUM];
   
   lm_lock_t vdisk_lock;
+
+  struct virtio_gpu_rect rect;
+
   
 } disk;
 
@@ -61,6 +64,11 @@ void
 virtio_disk_init(void)
 {
   uint32_t status = 0;
+  printf("virtio disk init\n");
+  // printf("magic value: %p\n", *R(VIRTIO_MMIO_MAGIC_VALUE));
+  // printf("version: %p\n", *R(VIRTIO_MMIO_VERSION));
+  // printf("device id: %p\n", *R(VIRTIO_MMIO_DEVICE_ID));
+  // printf("vendor id: %p\n", *R(VIRTIO_MMIO_VENDOR_ID));
 
   lm_lockinit(&disk.vdisk_lock, "virtio_disk");
 
@@ -117,14 +125,14 @@ virtio_disk_init(void)
     panic("virtio disk max queue too short");
 
   // allocate and zero queue memory.
-  disk.desc =(struct virtq_desc*) mem_malloc(sizeof(struct virtq_desc));
-  disk.avail = (struct virtq_avail *)mem_malloc(sizeof(struct virtq_avail ));
-  disk.used =(struct virtq_used *) mem_malloc(sizeof(struct virtq_used));
+  disk.desc =(struct virtq_desc*) mem_malloc(sizeof(struct virtq_desc)* NUM);
+  disk.avail = (struct virtq_avail *)mem_malloc(sizeof(struct virtq_avail )* NUM);
+  disk.used =(struct virtq_used *) mem_malloc(sizeof(struct virtq_used)* NUM);
   if(!disk.desc || !disk.avail || !disk.used)
     panic("virtio disk mem_malloc");
-  memset(disk.desc, 0, sizeof(struct virtq_desc));
-  memset(disk.avail, 0, sizeof(struct virtq_avail));
-  memset(disk.used, 0, sizeof(struct virtq_used));
+  memset(disk.desc, 0, sizeof(struct virtq_desc)* NUM);
+  memset(disk.avail, 0, sizeof(struct virtq_avail)* NUM);
+  memset(disk.used, 0, sizeof(struct virtq_used)* NUM);
 
   // set queue size.
   *R(VIRTIO_MMIO_QUEUE_NUM) = NUM;

@@ -26,6 +26,9 @@ void kvm_init(){
     // virtio mmio disk interface
     vm_map(kernel_pagetable, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W, 0);
 
+    // virtio mmio gpu interface
+    vm_map(kernel_pagetable, VIRTIO1, VIRTIO1, PGSIZE, PTE_R | PTE_W, 0);
+
     // PLIC
     vm_map(kernel_pagetable, PLIC, PLIC, 0x400000, PTE_R | PTE_W, 0);
 

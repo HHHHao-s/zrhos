@@ -232,3 +232,8 @@ int sys_write();
 int sys_read();
 int sys_open();
 int sys_chdir();
+
+// ------------------- virtio_gpu.c -------------------
+
+void virtio_gpu_intr();
+void virtio_gpu_init();

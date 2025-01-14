@@ -2,6 +2,8 @@
 #include "lock.h"
 #include "rbtree.h"
 #include "file.h"
+#include "param.h"
+#include "platform.h"
 typedef struct context {
     // Saved registers
     uint64_t ra; // 0 return address

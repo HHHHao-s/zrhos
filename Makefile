@@ -26,6 +26,7 @@ OBJS = \
   $K/virtio_disk.o \
   $K/exec.o \
   $K/sysfile.o \
+  $K/virtio_gpu.o \
 
 
 ifndef TOOLPREFIX
@@ -147,6 +148,12 @@ QEMUOPTS += -global virtio-mmio.force-legacy=false
 QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 
+# Add VirtIO GPU device and enable SDL display
+QEMUOPTS += -device virtio-gpu-device,bus=virtio-mmio-bus.1
+QEMUOPTS += -display sdl,gl=on
+
+# Optional: Set display resolution
+QEMUOPTS += -global virtio-gpu-pci.xres=1024 -global virtio-gpu-pci.yres=768
 
 qemu: $K/kernel
 	$(QEMU) $(QEMUOPTS)

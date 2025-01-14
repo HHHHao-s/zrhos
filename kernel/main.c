@@ -76,6 +76,7 @@ int main(){
         started = 1;
         __sync_synchronize();
         kvm_inithart();
+        
 
         user_init();
 
