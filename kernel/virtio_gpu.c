@@ -9,6 +9,9 @@
 #define CTRL_Q 0
 #define CURSOR_Q 1
 
+
+
+
 static struct virtio_gpu_dev {
   // a set (not a ring) of DMA descriptors, with which the
   // driver tells the device where to read and write individual
@@ -36,7 +39,6 @@ static struct virtio_gpu_dev {
   // for use when completion interrupt arrives.
   // indexed by first descriptor index of chain.
   struct {
-    char buffer[4096];
     char status; // device writes 0 on success
     char pending; // driver sets to 0 when it has seen the status
   } info[2][NUM];
@@ -49,7 +51,11 @@ static struct virtio_gpu_dev {
 
   uint32_t width;
   uint32_t height; 
-  void *framebuffer;
+  bgra_t *framebuffer;
+  uint64_t pixels;
+
+
+  uint32_t resource_id;
 
   lm_lock_t vgpu_lock;
   
@@ -133,9 +139,9 @@ static struct virtio_gpu_resp_display_info get_display_info(){
 
 
   lm_lock(&gpu.vgpu_lock);
-  int idx[3];
+  int idx[2];
   while(1){
-    if( allocn_desc(CTRL_Q, idx, 3)!=-1){
+    if( allocn_desc(CTRL_Q, idx, 2)!=-1){
       break;
     }
     sleep(&gpu.free[CTRL_Q][0], &gpu.vgpu_lock);
@@ -152,12 +158,7 @@ static struct virtio_gpu_resp_display_info get_display_info(){
   gpu.desc[CTRL_Q][idx[1]].flags = VRING_DESC_F_WRITE;
   gpu.desc[CTRL_Q][idx[1]].next = 0;
 
-  // gpu.info[CTRL_Q][idx[0]].status = 0xff; // device writes 0 on success
   gpu.info[CTRL_Q][idx[0]].pending = 1;
-  // gpu.desc[CTRL_Q][idx[2]].addr = (uint64_t)(&gpu.info[CTRL_Q][idx[0]].status);
-  // gpu.desc[CTRL_Q][idx[2]].len = 1;
-  // gpu.desc[CTRL_Q][idx[2]].flags = VRING_DESC_F_WRITE;
-  // gpu.desc[CTRL_Q][idx[2]].next = 0;
 
   // tell the device the first index in our chain of descriptors.
   gpu.avail[CTRL_Q]->ring[gpu.avail[CTRL_Q]->idx % NUM] = idx[0];
@@ -183,19 +184,336 @@ static struct virtio_gpu_resp_display_info get_display_info(){
 
 }
 
-// static void virtio_gpu_resource_create_2d(){
-//     struct virtio_gpu_ctrl_hdr req={
-//       .type= VIRTIO_GPU_CMD_RESOURCE_CREATE_2D ,
-//       .flags= 0,
-//       .fence_id = 0,
-//       .ctx_id = 0,
-//       .padding = 0
-//     };
+
+void virtio_gpu_set_scanout(){
+
+  struct virtio_gpu_set_scanout req;
+  req.hdr = (struct virtio_gpu_ctrl_hdr){
+    .type = VIRTIO_GPU_CMD_SET_SCANOUT,
+  };
+
+  req.r = (struct virtio_gpu_rect){
+    .x = 0,
+    .y = 0,
+    .width = gpu.width,
+    .height = gpu.height,
+  };
+
+  req.scanout_id = 0;
+  req.resource_id = gpu.resource_id;
+
+  lm_lock(&gpu.vgpu_lock);
+
+  int idx[2];
+  while(1){
+    if( allocn_desc(CTRL_Q, idx, 2)!=-1){
+      break;
+    }
+    sleep(&gpu.free[CTRL_Q][0], &gpu.vgpu_lock);
+  }
+
+  struct virtio_gpu_ctrl_hdr resp;
+
+  gpu.desc[CTRL_Q][idx[0]].addr = (uint64_t)(&req);
+  gpu.desc[CTRL_Q][idx[0]].len = sizeof(struct virtio_gpu_set_scanout);
+  gpu.desc[CTRL_Q][idx[0]].flags = VRING_DESC_F_NEXT;
+  gpu.desc[CTRL_Q][idx[0]].next = idx[1];
+
+  gpu.desc[CTRL_Q][idx[1]].addr = (uint64_t)(&resp);
+  gpu.desc[CTRL_Q][idx[1]].len = sizeof(struct virtio_gpu_ctrl_hdr);
+  gpu.desc[CTRL_Q][idx[1]].flags = VRING_DESC_F_WRITE;
+  gpu.desc[CTRL_Q][idx[1]].next = 0;
+
+  gpu.info[CTRL_Q][idx[0]].pending = 1;
+
+  // tell the device the first index in our chain of descriptors.
+  gpu.avail[CTRL_Q]->ring[gpu.avail[CTRL_Q]->idx % NUM] = idx[0];
+
+  __sync_synchronize();
+
+  // tell the device another avail ring entry is available.
+
+  gpu.avail[CTRL_Q]->idx += 1; // not % NUM ...
+
+  __sync_synchronize();
+
+  *R(VIRTIO_MMIO_QUEUE_NOTIFY) = CTRL_Q; // value is queue number
+
+  while(gpu.info[CTRL_Q][idx[0]].pending == 1){
+    sleep((void*)(&gpu.info[CTRL_Q][idx[0]].pending), &gpu.vgpu_lock);
+  }
+
+  free_chain(CTRL_Q, idx[0]);
+  lm_unlock(&gpu.vgpu_lock);
+
+  panic_on(resp.type != VIRTIO_GPU_RESP_OK_NODATA, "virtio_gpu_set_scanout failed");
+
+  printf("virtio_gpu_set_scanout success\n");
 
 
 
+}
 
-// }
+void virtio_gpu_resource_flush(){
+
+  struct virtio_gpu_resource_flush req;
+  req.hdr = (struct virtio_gpu_ctrl_hdr){
+    .type = VIRTIO_GPU_CMD_RESOURCE_FLUSH,
+  };
+
+  req.r = (struct virtio_gpu_rect){
+    .x = 0,
+    .y = 0,
+    .width = gpu.width,
+    .height = gpu.height,
+  };
+
+  req.resource_id = gpu.resource_id;
+
+  lm_lock(&gpu.vgpu_lock);
+
+  int idx[2];
+  while(1){
+    if( allocn_desc(CTRL_Q, idx, 2)!=-1){
+      break;
+    }
+    sleep(&gpu.free[CTRL_Q][0], &gpu.vgpu_lock);
+  }
+
+  struct virtio_gpu_ctrl_hdr resp;
+
+  gpu.desc[CTRL_Q][idx[0]].addr = (uint64_t)(&req);
+  gpu.desc[CTRL_Q][idx[0]].len = sizeof(struct virtio_gpu_resource_flush);
+  gpu.desc[CTRL_Q][idx[0]].flags = VRING_DESC_F_NEXT;
+  gpu.desc[CTRL_Q][idx[0]].next = idx[1];
+
+  gpu.desc[CTRL_Q][idx[1]].addr = (uint64_t)(&resp);
+  gpu.desc[CTRL_Q][idx[1]].len = sizeof(struct virtio_gpu_ctrl_hdr);
+  gpu.desc[CTRL_Q][idx[1]].flags = VRING_DESC_F_WRITE;
+  gpu.desc[CTRL_Q][idx[1]].next = 0;
+
+  gpu.info[CTRL_Q][idx[0]].pending = 1;
+
+  // tell the device the first index in our chain of descriptors.
+
+  gpu.avail[CTRL_Q]->ring[gpu.avail[CTRL_Q]->idx % NUM] = idx[0];
+
+  __sync_synchronize();
+
+  // tell the device another avail ring entry is available.
+
+  gpu.avail[CTRL_Q]->idx += 1; // not % NUM ...
+
+  __sync_synchronize();
+
+  *R(VIRTIO_MMIO_QUEUE_NOTIFY) = CTRL_Q; // value is queue number
+
+  while(gpu.info[CTRL_Q][idx[0]].pending == 1){
+    sleep((void*)(&gpu.info[CTRL_Q][idx[0]].pending), &gpu.vgpu_lock);
+  }
+
+  free_chain(CTRL_Q, idx[0]);
+  lm_unlock(&gpu.vgpu_lock);
+
+  panic_on(resp.type != VIRTIO_GPU_RESP_OK_NODATA, "virtio_gpu_resource_flush failed");
+
+  printf("virtio_gpu_resource_flush success\n");
+
+}
+
+
+void virtio_gpu_transfer_to_host_2d(){
+
+  struct virtio_gpu_transfer_to_host_2d req;
+  req.hdr = (struct virtio_gpu_ctrl_hdr){
+    .type = VIRTIO_GPU_CMD_TRANSFER_TO_HOST_2D,
+  };
+  req.r = (struct virtio_gpu_rect){
+    .x = 0,
+    .y = 0,
+    .width = gpu.width,
+    .height = gpu.height,
+  };
+  req.offset = 0;
+  req.resource_id = gpu.resource_id;
+
+
+  lm_lock(&gpu.vgpu_lock);
+
+  int idx[2];
+  while(1){
+    if( allocn_desc(CTRL_Q, idx, 2)!=-1){
+      break;
+    }
+    sleep(&gpu.free[CTRL_Q][0], &gpu.vgpu_lock);
+  }
+
+  struct virtio_gpu_ctrl_hdr resp;
+
+  gpu.desc[CTRL_Q][idx[0]].addr = (uint64_t)(&req);
+  gpu.desc[CTRL_Q][idx[0]].len = sizeof(struct virtio_gpu_transfer_to_host_2d);
+  gpu.desc[CTRL_Q][idx[0]].flags = VRING_DESC_F_NEXT;
+  gpu.desc[CTRL_Q][idx[0]].next = idx[1];
+
+  gpu.desc[CTRL_Q][idx[1]].addr = (uint64_t)(&resp);
+  gpu.desc[CTRL_Q][idx[1]].len = sizeof(struct virtio_gpu_ctrl_hdr);
+  gpu.desc[CTRL_Q][idx[1]].flags = VRING_DESC_F_WRITE;
+  gpu.desc[CTRL_Q][idx[1]].next = 0;
+
+  gpu.info[CTRL_Q][idx[0]].pending = 1;
+
+  // tell the device the first index in our chain of descriptors.
+
+  gpu.avail[CTRL_Q]->ring[gpu.avail[CTRL_Q]->idx % NUM] = idx[0];
+
+  __sync_synchronize();
+
+  // tell the device another avail ring entry is available.
+
+  gpu.avail[CTRL_Q]->idx += 1; // not % NUM ...
+
+  __sync_synchronize();
+
+  *R(VIRTIO_MMIO_QUEUE_NOTIFY) = CTRL_Q; // value is queue number
+
+  while(gpu.info[CTRL_Q][idx[0]].pending == 1){
+    sleep((void*)(&gpu.info[CTRL_Q][idx[0]].pending), &gpu.vgpu_lock);
+  }
+
+  free_chain(CTRL_Q, idx[0]);
+  lm_unlock(&gpu.vgpu_lock);
+
+  panic_on(resp.type != VIRTIO_GPU_RESP_OK_NODATA, "virtio_gpu_transfer_to_host_2d failed");
+
+  printf("virtio_gpu_transfer_to_host_2d success\n");
+
+}
+
+
+void virtio_gpu_resource_attach_backing(){
+
+  struct virtio_gpu_resource_attach_backing req;
+  req.hdr = (struct virtio_gpu_ctrl_hdr){
+    .type = VIRTIO_GPU_CMD_RESOURCE_ATTACH_BACKING,
+  };
+  req.resource_id = gpu.resource_id;
+  req.nr_entries = 1;
+
+  lm_lock(&gpu.vgpu_lock);
+
+  int idx[3];
+  while(1){
+    if( allocn_desc(CTRL_Q, idx, 3)!=-1){
+      break;
+    }
+    sleep(&gpu.free[CTRL_Q][0], &gpu.vgpu_lock);
+  }
+  struct virtio_gpu_mem_entry entry;
+  
+  mandelbrot((bgra_t*)gpu.framebuffer, gpu.width, gpu.height);
+
+  entry.addr = (uint64_t)gpu.framebuffer;
+  entry.length = gpu.pixels * sizeof(bgra_t);
+
+
+  struct virtio_gpu_ctrl_hdr resp;
+
+  gpu.desc[CTRL_Q][idx[0]].addr = (uint64_t)(&req);
+  gpu.desc[CTRL_Q][idx[0]].len = sizeof(struct virtio_gpu_resource_attach_backing);
+  gpu.desc[CTRL_Q][idx[0]].flags = VRING_DESC_F_NEXT;
+  gpu.desc[CTRL_Q][idx[0]].next = idx[1];
+
+  gpu.desc[CTRL_Q][idx[1]].addr = (uint64_t)(&entry);
+  gpu.desc[CTRL_Q][idx[1]].len = sizeof(struct virtio_gpu_mem_entry);
+  gpu.desc[CTRL_Q][idx[1]].flags = VRING_DESC_F_NEXT;
+  gpu.desc[CTRL_Q][idx[1]].next = idx[2];
+
+  gpu.desc[CTRL_Q][idx[2]].addr = (uint64_t)(&resp);
+  gpu.desc[CTRL_Q][idx[2]].len = sizeof(struct virtio_gpu_ctrl_hdr);
+  gpu.desc[CTRL_Q][idx[2]].flags = VRING_DESC_F_WRITE;
+  gpu.desc[CTRL_Q][idx[2]].next = 0;
+
+
+  gpu.info[CTRL_Q][idx[0]].pending = 1;
+
+  // tell the device the first index in our chain of descriptors.
+  gpu.avail[CTRL_Q]->ring[gpu.avail[CTRL_Q]->idx % NUM] = idx[0];
+
+  __sync_synchronize();
+
+  // tell the device another avail ring entry is available.
+  gpu.avail[CTRL_Q]->idx += 1; // not % NUM ...
+
+  __sync_synchronize();
+
+  *R(VIRTIO_MMIO_QUEUE_NOTIFY) = CTRL_Q; // value is queue number
+
+  while(gpu.info[CTRL_Q][idx[0]].pending == 1){
+    sleep((void*)(&gpu.info[CTRL_Q][idx[0]].pending), &gpu.vgpu_lock);
+  }
+  free_chain(CTRL_Q, idx[0]);
+  lm_unlock(&gpu.vgpu_lock);
+
+  panic_on(resp.type != VIRTIO_GPU_RESP_OK_NODATA, "virtio_gpu_resource_attach_backing failed");
+  printf("virtio_gpu_resource_attach_backing success\n");
+
+}
+
+static void virtio_gpu_resource_create_2d(){
+  struct virtio_gpu_resource_create_2d  req;
+  req.hdr = (struct virtio_gpu_ctrl_hdr){
+    .type = VIRTIO_GPU_CMD_RESOURCE_CREATE_2D,
+  };
+  req.width = gpu.width;
+  req.height = gpu.height;
+  req.resource_id = gpu.resource_id;
+  req.format = VIRTIO_GPU_FORMAT_B8G8R8A8_UNORM;
+
+  lm_lock(&gpu.vgpu_lock);
+
+  int idx[2];
+  while(1){
+    if( allocn_desc(CTRL_Q, idx, 2)!=-1){
+      break;
+    }
+    sleep(&gpu.free[CTRL_Q][0], &gpu.vgpu_lock);
+  }
+
+  struct virtio_gpu_ctrl_hdr resp;
+
+  gpu.desc[CTRL_Q][idx[0]].addr = (uint64_t)(&req);
+  gpu.desc[CTRL_Q][idx[0]].len = sizeof(struct virtio_gpu_resource_create_2d);
+  gpu.desc[CTRL_Q][idx[0]].flags = VRING_DESC_F_NEXT;
+  gpu.desc[CTRL_Q][idx[0]].next = idx[1];
+
+  gpu.desc[CTRL_Q][idx[1]].addr = (uint64_t)(&resp);
+  gpu.desc[CTRL_Q][idx[1]].len = sizeof(struct virtio_gpu_ctrl_hdr);
+  gpu.desc[CTRL_Q][idx[1]].flags = VRING_DESC_F_WRITE;
+  gpu.desc[CTRL_Q][idx[1]].next = 0;
+
+  gpu.info[CTRL_Q][idx[0]].pending = 1;
+
+  // tell the device the first index in our chain of descriptors.
+  gpu.avail[CTRL_Q]->ring[gpu.avail[CTRL_Q]->idx % NUM] = idx[0];
+
+  __sync_synchronize();
+
+  // tell the device another avail ring entry is available.
+  gpu.avail[CTRL_Q]->idx += 1; // not % NUM ...
+
+  __sync_synchronize();
+
+  *R(VIRTIO_MMIO_QUEUE_NOTIFY) = CTRL_Q; // value is queue number
+
+  while(gpu.info[CTRL_Q][idx[0]].pending == 1){
+    sleep((void*)(&gpu.info[CTRL_Q][idx[0]].pending), &gpu.vgpu_lock);
+  }
+  free_chain(CTRL_Q, idx[0]);
+  lm_unlock(&gpu.vgpu_lock);
+
+  panic_on(resp.type != VIRTIO_GPU_RESP_OK_NODATA, "virtio_gpu_resource_create_2d failed");
+
+}
 
 
 
@@ -337,6 +655,18 @@ virtio_gpu_init(void)
   struct virtio_gpu_resp_display_info resp = get_display_info();
   printf("display info: width:%d height:%d\n",resp.pmodes[0].r.width,resp.pmodes[0].r.height);
 
+  gpu.width = resp.pmodes[0].r.width;
+  gpu.height = resp.pmodes[0].r.height;
+  gpu.framebuffer = mem_malloc(gpu.width * gpu.height * 4);
+  gpu.pixels = gpu.width * gpu.height;
+
+  virtio_gpu_resource_create_2d();
+  virtio_gpu_resource_attach_backing();
+  virtio_gpu_set_scanout();
+  virtio_gpu_transfer_to_host_2d();
+  virtio_gpu_resource_flush();
+
+
 }
 
 
@@ -357,6 +687,8 @@ void virtio_gpu_intr(){
 
         gpu.used_idx[CTRL_Q]++;
     }
+    gpu.resource_id = 1;
+    
 
     lm_unlock(&gpu.vgpu_lock);
 }

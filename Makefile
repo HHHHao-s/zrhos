@@ -27,6 +27,7 @@ OBJS = \
   $K/exec.o \
   $K/sysfile.o \
   $K/virtio_gpu.o \
+  $K/mandelbrot.o \
 
 
 ifndef TOOLPREFIX

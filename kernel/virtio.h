@@ -54,7 +54,7 @@
 
 // this many virtio descriptors.
 // must be a power of two.
-#define NUM 8
+#define NUM 64
 
 // a single descriptor, from the spec.
 struct virtq_desc {
@@ -187,4 +187,38 @@ struct virtio_gpu_resource_create_2d {
   uint32_t format;
   uint32_t width;
   uint32_t height;
+};
+
+
+struct virtio_gpu_resource_attach_backing {
+  struct virtio_gpu_ctrl_hdr hdr;
+  uint32_t resource_id;
+  uint32_t nr_entries;
+};
+struct virtio_gpu_mem_entry {
+  uint64_t addr;
+  uint32_t length;
+  uint32_t padding;
+};
+
+struct virtio_gpu_set_scanout{
+  struct virtio_gpu_ctrl_hdr hdr;
+  struct virtio_gpu_rect r;
+  uint32_t scanout_id;
+  uint32_t resource_id;
+};
+
+struct virtio_gpu_transfer_to_host_2d {
+  struct virtio_gpu_ctrl_hdr hdr;
+  struct virtio_gpu_rect r;
+  uint64_t offset;
+  uint32_t resource_id;
+  uint32_t padding;
+};
+
+struct virtio_gpu_resource_flush {
+  struct virtio_gpu_ctrl_hdr hdr;
+  struct virtio_gpu_rect r;
+  uint32_t resource_id;
+  uint32_t padding;
 };

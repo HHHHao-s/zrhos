@@ -237,3 +237,7 @@ int sys_chdir();
 
 void virtio_gpu_intr();
 void virtio_gpu_init();
+
+// ------------------- mandelbrot.c -------------------
+
+void mandelbrot(bgra_t *im, int width, int height);
