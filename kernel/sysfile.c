@@ -4,6 +4,8 @@
 #include "param.h"
 #include "proc.h"
 
+extern device_t devsw[];
+
 uint64_t arguint64(int pos){
     task_t *t = mytask();
     switch (pos)
@@ -202,6 +204,21 @@ fdalloc(struct file *f)
   return -1;
 }
 
+int sys_close(void){
+    int fd;
+    task_t *t = mytask();
+    if((fd = arguint64(0)) < 0 || fd >= NOFILE){
+        return -1;
+    }
+    file_t *f = t->ofile[fd];
+    if(f == 0){
+        return -1;
+    }
+    t->ofile[fd] = 0;
+    fileclose(f);
+    return 0;
+}
+
 int
 sys_open(void)
 {
@@ -274,7 +291,6 @@ sys_open(void)
 }
 
 int sys_write(){
-    extern device_t devsw[];
     task_t *t = mytask();
     int fd = t->trapframe->a0;  
     char *buf = (char*)t->trapframe->a1;
@@ -290,7 +306,10 @@ int sys_write(){
     {
 
         device_t *dev = &devsw[f->major];
+        if(dev->write == 0)
+            return -1;
         t->trapframe->a0= dev->write(dev, 1, (uint64_t)buf, count);
+        
     }else if(f->type==FD_INODE){
         begin_op();
         ilock(f->ip);
@@ -310,7 +329,7 @@ int sys_write(){
 }   
 
 int sys_read(){
-    extern device_t devsw[];
+
     task_t *t = mytask();
     int fd = t->trapframe->a0;  
     char *buf = (char*)t->trapframe->a1;
@@ -326,6 +345,8 @@ int sys_read(){
     {
 
         device_t *dev = &devsw[f->major];
+        if(dev->read == 0)
+            return -1;
         t->trapframe->a0= dev->read(dev, 1, (uint64_t)buf, count);
     }else if(f->type == FD_INODE){
 
@@ -342,4 +363,35 @@ int sys_read(){
 
     }
     return -1;
+}
+
+int sys_ioctl(){
+    
+    task_t *t = mytask();
+    int fd = t->trapframe->a0;
+    int request = t->trapframe->a1;
+    char *buf = (char*)t->trapframe->a2;
+    if (fd < 0 || fd >= NOFILE)
+    {
+        t->trapframe->a0 = -1;
+        return -1;
+    }
+    file_t *f = t->ofile[fd];
+    if(f==0){
+        t->trapframe->a0 = -1;
+        return -1;
+    }
+        
+    if (f->type == FD_DEVICE)
+    {
+        device_t *dev = &devsw[f->major];
+        if(dev->ioctl == 0){
+            t->trapframe->a0 = -1;
+            return -1;
+        }
+        t->trapframe->a0= dev->ioctl(dev, request, 1, (uint64_t)buf);
+    }
+    t->trapframe->a0 = -1;
+    return -1;
+
 }

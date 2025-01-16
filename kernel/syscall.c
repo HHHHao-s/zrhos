@@ -28,6 +28,8 @@ static int (*syscalls[])(void)={
     [SYS_exec] = sys_exec,
     [SYS_open] = sys_open,
     [SYS_chdir] = sys_chdir,
+    [SYS_ioctl] = sys_ioctl,
+    [SYS_close] = sys_close,
 };
 
 void syscall(){

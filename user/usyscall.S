@@ -72,3 +72,15 @@ chdir:
     li a7, SYS_chdir
     ecall
     ret
+
+.global ioctl
+ioctl:
+    li a7, SYS_ioctl
+    ecall
+    ret
+
+.global close
+close:
+    li a7, SYS_close
+    ecall
+    ret

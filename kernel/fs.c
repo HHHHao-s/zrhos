@@ -46,6 +46,7 @@ void fs_init(int dev){
     }
     lm_lockinit(&itable.lock, "itable");
     lm_sem_init(&fs_lock, 1);
+    
 }
 
 

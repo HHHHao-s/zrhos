@@ -194,6 +194,7 @@ console_init(void)
     devsw[CONSOLE].ptr = NULL;
     devsw[CONSOLE].read = console_read;
     devsw[CONSOLE].write = console_write;
+    devsw[CONSOLE].ioctl = NULL;
 
   // this file will never be closed
   //   console_file = filealloc();

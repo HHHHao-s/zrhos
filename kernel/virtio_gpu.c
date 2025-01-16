@@ -2,6 +2,7 @@
 #include "memlayout.h"
 #include "lock.h"
 #include "proc.h"
+#include "monitor.h"
 #include "defs.h"
 // the address of virtio mmio register r.
 #define R(r) ((volatile uint32_t *)(VIRTIO1 + (r)))
@@ -185,7 +186,7 @@ static struct virtio_gpu_resp_display_info get_display_info(){
 }
 
 
-void virtio_gpu_set_scanout(){
+static void virtio_gpu_set_scanout(){
 
   struct virtio_gpu_set_scanout req;
   req.hdr = (struct virtio_gpu_ctrl_hdr){
@@ -390,7 +391,7 @@ void virtio_gpu_transfer_to_host_2d(){
 }
 
 
-void virtio_gpu_resource_attach_backing(){
+static void virtio_gpu_resource_attach_backing(){
 
   struct virtio_gpu_resource_attach_backing req;
   req.hdr = (struct virtio_gpu_ctrl_hdr){
@@ -518,7 +519,7 @@ static void virtio_gpu_resource_create_2d(){
 
 
 void
-virtio_gpu_init(void)
+virtio_gpu_init(monitor_t *monitor)
 {
   uint32_t status = 0;
 
@@ -652,6 +653,8 @@ virtio_gpu_init(void)
 
   // query display information
 
+  gpu.resource_id = 1;
+
   struct virtio_gpu_resp_display_info resp = get_display_info();
   printf("display info: width:%d height:%d\n",resp.pmodes[0].r.width,resp.pmodes[0].r.height);
 
@@ -659,6 +662,11 @@ virtio_gpu_init(void)
   gpu.height = resp.pmodes[0].r.height;
   gpu.framebuffer = mem_malloc(gpu.width * gpu.height * 4);
   gpu.pixels = gpu.width * gpu.height;
+
+  monitor->buf = gpu.framebuffer;
+  monitor->buf_len = gpu.pixels*4;
+  monitor->width = gpu.width;
+  monitor->height = gpu.height;
 
   virtio_gpu_resource_create_2d();
   virtio_gpu_resource_attach_backing();
@@ -687,8 +695,5 @@ void virtio_gpu_intr(){
 
         gpu.used_idx[CTRL_Q]++;
     }
-    gpu.resource_id = 1;
-    
-
     lm_unlock(&gpu.vgpu_lock);
 }

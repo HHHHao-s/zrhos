@@ -250,7 +250,7 @@ printf(const char *fmt, ...)
 void* malloc(size_t n){
 
   size_t total = n + sizeof(size_t);
-  void *ptr = (void*)mmap(0, n, PERM_R| PERM_W, MAP_PRIVATE | MAP_ANONYMOUS);
+  void *ptr = (void*)mmap(0, total, PERM_R| PERM_W, MAP_PRIVATE | MAP_ANONYMOUS);
   if(ptr == (void*)-1)
     return NULL;
   *((size_t*)((uint8_t*)ptr+ total-sizeof(size_t))) = total;

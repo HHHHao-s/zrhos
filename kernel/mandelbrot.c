@@ -38,7 +38,7 @@ float modulus(Complex c) {
     return 1/Q_rsqrt(c.real * c.real + c.imag * c.imag);
 }
 
-#define MAX_ITER 100 // 最大迭代次数
+#define MAX_ITER 10 // 最大迭代次数
 #define ESCAPE_RADIUS 2.0 // 如果模长超过此值，则认为已经发散
 
 void mandelbrot(bgra_t *im, int width, int height) {

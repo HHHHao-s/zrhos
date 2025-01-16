@@ -28,6 +28,7 @@ OBJS = \
   $K/sysfile.o \
   $K/virtio_gpu.o \
   $K/mandelbrot.o \
+  $K/monitor.o \
 
 
 ifndef TOOLPREFIX
@@ -107,6 +108,7 @@ UPROGS =\
 	$U/_test \
 	$U/_sh \
 	$U/_ls \
+	$U/_game \
 
 
 mkfs/mkfs: mkfs/mkfs.cpp $(UPROGS)

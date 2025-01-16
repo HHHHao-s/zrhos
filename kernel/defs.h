@@ -232,12 +232,26 @@ int sys_write();
 int sys_read();
 int sys_open();
 int sys_chdir();
+int sys_close();
+int sys_ioctl();
+
 
 // ------------------- virtio_gpu.c -------------------
+typedef struct monitor monitor_t;
 
 void virtio_gpu_intr();
-void virtio_gpu_init();
+void virtio_gpu_resource_flush();
+void virtio_gpu_transfer_to_host_2d();
+void virtio_gpu_init(monitor_t *monitor);
+
 
 // ------------------- mandelbrot.c -------------------
 
 void mandelbrot(bgra_t *im, int width, int height);
+
+// ------------------- monitor.c -------------------
+
+typedef struct device device_t;
+
+void monitor_init(void);
+void monitor_intr(device_t*dev);

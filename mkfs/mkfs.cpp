@@ -191,9 +191,10 @@ int dirappend(dinode *dip, dirent ent){
     return -1;
 }
 
-
+// device array
 std::vector<device_t> devs={
-    {(device_t){.name="console", .id=CONSOLE}}
+    {(device_t){.name="console", .id=CONSOLE}},
+    {(device_t){.name="monitor0", .id=MONITOR0}}
 };
 
 int dirlink(dinode *dip, std::string name, int inum){
@@ -222,7 +223,9 @@ void add_dev(){
         if(dev_inode==nullptr){
             throw exception();
         }
+        dev_inode->major = dev.id;
         dirlink(inode,dev.name, dev_inum );
+        
     }
 
 

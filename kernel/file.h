@@ -13,6 +13,7 @@ struct device {
   void *ptr;
   uint64_t (*read) (struct device *dev, int user_src , uint64_t buf, uint64_t count);
   uint64_t (*write)(struct device *dev, int user_src , uint64_t buf, uint64_t count);
+  uint64_t (*ioctl)(struct device *dev, int user_src , uint64_t cmd, uint64_t arg);
 };
 typedef struct device device_t;
 
@@ -39,7 +40,7 @@ typedef struct inode {
   
   // copy of disk inode
   semophore_t lock;   // protects everything below here
-  short type;         // copy of disk inode
+  short type;         
   short major;
   short minor;
   short nlink;
