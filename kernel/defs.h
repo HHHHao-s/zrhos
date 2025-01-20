@@ -255,3 +255,13 @@ typedef struct device device_t;
 
 void monitor_init(void);
 void monitor_intr(device_t*dev);
+
+// ------------------- virtio_input.c -------------------
+
+void virtio_input_init();
+void virtio_input_intr();
+
+// ------------------- keyboard.c -------------------
+struct virtio_input_event;
+void keyboard_init();
+void keyboard_intr(struct virtio_input_event event );

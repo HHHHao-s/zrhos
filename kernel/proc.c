@@ -124,6 +124,15 @@ pagetable_t user_pagetable(task_t *t){
     return 0;
   }
 
+  // map user read only page
+  // kernel use it to store some data for user
+  if(uvm_map(pagetable, USERRDONLYMAP, (uint64_t)USERRDONLY, PGSIZE, PTE_R, 0) < 0){
+    vm_unmap(pagetable, TRAMPOLINE, 1, 0);
+    vm_unmap(pagetable, TRAPFRAME, 1, 0);
+    mem_free(pagetable);
+    return 0;
+  }
+
   return pagetable;
 }
 

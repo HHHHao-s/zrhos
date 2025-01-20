@@ -472,7 +472,7 @@ void mem_init(){
 
     heap_top = (void *) PGROUNDUP((uintptr_t)end);
 
-    heap_end = (void *) PHYSTOP;
+    heap_end = (void *) MEMSTOP;
 
     printf("km_init memory range: [%p - %p]\n", heap_top, heap_end);
 

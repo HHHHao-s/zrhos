@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include "usyscall.h"
 #include "kernel/mmap.h"
+#include "kernel/memlayout.h"
 
 static char digits[] = "0123456789ABCDEF";
 void _main(){
@@ -260,4 +261,10 @@ void* malloc(size_t n){
 
 void free(void *ptr){
   munmap((uint64_t)ptr, *((size_t*)(ptr-sizeof(size_t))));
+}
+
+uint_t get_timer_ticks(){
+
+  return *((uint_t*)USERRDONLYMAP);
+
 }

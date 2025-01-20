@@ -13,3 +13,4 @@
 // ------- device major id -------------
 #define CONSOLE 0 // console device node
 #define MONITOR0 1 // monitor0 device node
+#define KEYBOARD 2 // keyboard device node

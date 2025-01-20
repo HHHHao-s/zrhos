@@ -8,8 +8,13 @@ extern char kernelvec[];
 extern char uservec[];
 extern char userret[];
 extern char trampoline[];
+lm_lock_t tickslock;
+volatile uint_t *ticks;
+
 void trap_init(){
     printf("trap_init\n");
+    lm_lockinit(&tickslock, "time");
+    ticks =(uint_t *) USERRDONLY;
 }
 
 void trap_inithart(){
@@ -19,18 +24,39 @@ void trap_inithart(){
     w_stvec((uint64_t)kernelvec);
 }
 
+
+
+void
+clockintr()
+{
+    // atomic increment of ticks
+  __sync_fetch_and_add(ticks, 1);
+  wakeup(&ticks);
+}
+
 void handle_external(){
     int irq = plic_claim();
-    if(irq == UART0_IRQ){
-        // printf("uart interrupt\n");
+
+    switch (irq){
+    case UART0_IRQ:
         uart_intr();
-    }else if(irq == VIRTIO0_IRQ){
-        // printf("virtio disk interrupt\n");
+        break;
+    case VIRTIO0_IRQ:
+
         virtio_disk_intr();
-    }else if(irq == VIRTIO1_IRQ){
-        // printf("virtio gpu interrupt\n");
+        break;
+
+    case VIRTIO1_IRQ:
+
         virtio_gpu_intr();
+        break;
+
+    case VIRTIO2_IRQ:
+    
+        virtio_input_intr();
+        break;  
     }
+
     plic_complete(irq);
 }
 
@@ -41,6 +67,9 @@ void handle_software(){
     uint64_t sepc = r_sepc();
     uint64_t sstatus = r_sstatus();
     w_sip(r_sip() & (~SIE_SSIE));
+    if(cpuid() == 0){
+        clockintr();
+    }
 
     task_t *t = mytask();
     if(t != NULL && t->state == RUNNING){
@@ -143,7 +172,7 @@ void usertrap(void){
         syscall();
         
     }else{
-        printf("scause %d\n", r_scause());
+        // printf("scause %d\n", r_scause());
         handle_trap();
     }
 

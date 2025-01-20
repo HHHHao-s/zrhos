@@ -194,7 +194,8 @@ int dirappend(dinode *dip, dirent ent){
 // device array
 std::vector<device_t> devs={
     {(device_t){.name="console", .id=CONSOLE}},
-    {(device_t){.name="monitor0", .id=MONITOR0}}
+    {(device_t){.name="monitor0", .id=MONITOR0}},
+    {(device_t){.name="keyboard", .id=KEYBOARD}}
 };
 
 int dirlink(dinode *dip, std::string name, int inum){

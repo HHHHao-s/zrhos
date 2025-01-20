@@ -29,6 +29,8 @@ OBJS = \
   $K/virtio_gpu.o \
   $K/mandelbrot.o \
   $K/monitor.o \
+  $K/virtio_input.o \
+  $K/keyboard.o \
 
 
 ifndef TOOLPREFIX
@@ -137,7 +139,7 @@ clean:
 
 
 ifndef CPUS
-CPUS := 1
+CPUS := 2
 endif
 
 FWDPORT = $(shell expr `id -u` % 5000 + 25999)
@@ -155,8 +157,11 @@ QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 QEMUOPTS += -device virtio-gpu-device,bus=virtio-mmio-bus.1
 QEMUOPTS += -display sdl,gl=on
 
+# Add VirtIO input device for keyboard
+QEMUOPTS += -device virtio-keyboard-device,bus=virtio-mmio-bus.2
+
 # Optional: Set display resolution
-QEMUOPTS += -global virtio-gpu-pci.xres=1024 -global virtio-gpu-pci.yres=768
+QEMUOPTS += -global virtio-gpu-device.xres=1024 -global virtio-gpu-device.yres=1024
 
 qemu: $K/kernel
 	$(QEMU) $(QEMUOPTS)

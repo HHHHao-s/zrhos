@@ -26,6 +26,10 @@
 #define VIRTIO1 0x10002000
 #define VIRTIO1_IRQ 2
 
+// virtio mmio interface (for input)
+#define VIRTIO2 0x10003000
+#define VIRTIO2_IRQ 3
+
 // core local interruptor (CLINT), which contains the timer.
 #define CLINT 0x2000000L
 #define CLINT_MTIMECMP(hartid) (CLINT + 0x4000 + 8*(hartid))
@@ -45,6 +49,8 @@
 #define PHYSIZE (128*1024*1024 )// 128MB
 #define PHYSTATR ( 0x80000000L)
 #define PHYSTOP  (PHYSTATR + PHYSIZE)
+#define MEMSTOP  (PHYSTOP - 2*PGSIZE)
+#define USERRDONLY (PHYSTOP - PGSIZE) // map some kernel data for user read only(e.g. timer ticks)
 #define MAXVA (1L << (9 + 9 + 9 + 12 - 1))
 #define PGSIZE 4096 // bytes per page
 // map the trampoline page to the highest address,
@@ -58,9 +64,11 @@
 //   fixed-size stack
 //   anynomous mmap
 //   ...
+//   USERRDONLY (the same page as in the kernel)
 //   TRAPFRAME (p->trapframe, used by the trampoline)
 //   TRAMPOLINE (the same page as in the kernel)
 #define TRAPFRAME (TRAMPOLINE - PGSIZE)
+#define USERRDONLYMAP (TRAPFRAME - PGSIZE)
 // anynomous mmap will start from here
 // middle of the address space
 #define VA_ANYNOMOUS (MAXVA >> 1)

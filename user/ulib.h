@@ -16,3 +16,4 @@ void printf(const char *fmt, ...);
 void _main();
 void* malloc(size_t n);
 void free(void *p);
+uint_t get_timer_ticks();

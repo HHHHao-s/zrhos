@@ -72,6 +72,8 @@ int main(){
         kvm_init();
         mmap_init();
         virtio_disk_init(); // emulated hard disk
+        keyboard_init();
+        
         binit(); // buffer cache
         started = 1;
         __sync_synchronize();

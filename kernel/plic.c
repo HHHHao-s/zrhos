@@ -16,6 +16,7 @@ plic_init(void)
   *(uint32_t*)(PLIC + UART0_IRQ*4) = 1;
   *(uint32_t*)(PLIC + VIRTIO0_IRQ*4) = 1;
   *(uint32_t*)(PLIC + VIRTIO1_IRQ*4) = 1;
+  *(uint32_t*)(PLIC + VIRTIO2_IRQ*4) = 1;
 }
 
 void
@@ -26,7 +27,7 @@ plic_inithart(void)
   // set enable bits for this hart's S-mode
   // for the uart and virtio disk.
   // *(uint32_t*)PLIC_SENABLE(hart) = (1 << UART0_IRQ) | (1 << VIRTIO0_IRQ);
-  *(uint32_t*)PLIC_SENABLE(hart) = (1 << UART0_IRQ) | (1 << VIRTIO0_IRQ) | (1<<VIRTIO1_IRQ);
+  *(uint32_t*)PLIC_SENABLE(hart) = (1 << UART0_IRQ) | (1 << VIRTIO0_IRQ) | (1<<VIRTIO1_IRQ) | (1<<VIRTIO2_IRQ);
 
   // set this hart's S-mode priority threshold to 0.
   *(uint32_t*)PLIC_SPRIORITY(hart) = 0;
