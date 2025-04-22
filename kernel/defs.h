@@ -234,6 +234,7 @@ int sys_open();
 int sys_chdir();
 int sys_close();
 int sys_ioctl();
+int sys_mkdir();
 
 
 // ------------------- virtio_gpu.c -------------------

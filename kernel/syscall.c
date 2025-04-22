@@ -30,6 +30,7 @@ static int (*syscalls[])(void)={
     [SYS_chdir] = sys_chdir,
     [SYS_ioctl] = sys_ioctl,
     [SYS_close] = sys_close,
+    [SYS_mkdir] = sys_mkdir,
 };
 
 void syscall(){

@@ -7,7 +7,7 @@
 
 static char buf[4096];
 
-static int kernel_debug=1;
+static int kernel_debug=0;
 
 static void putstr(const char *s)
 {

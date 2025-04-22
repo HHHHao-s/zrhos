@@ -14,6 +14,7 @@
 #define SYS_chdir 13
 #define SYS_ioctl 14
 #define SYS_close 15    
+#define SYS_mkdir 16
 // #define SYS_open 1
 // #define SYS_close 1
 // #define SYS_mkdir 1

@@ -13,3 +13,4 @@ int open(const char*pathname, uint64_t mode);
 int chdir(const char*pathname);
 uint64_t ioctl(int fd, uint64_t cmd, uint64_t arg);
 int close(int fd);
+int mkdir(const char*pathname);

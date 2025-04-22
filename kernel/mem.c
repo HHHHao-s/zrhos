@@ -56,7 +56,7 @@ static inline char _log2(size_t size)
 
 static unsigned int PAGEPOS;
 
-Blockptr_t sizehead[32] = {NULL}; // from 8 to PGSIZE/2 once init, last forever indentified by pos
+Blockptr_t sizehead[32] = {NULL}; // from 8 to PGSIZE/2 , once init, exist forever, indentified by pos
 Blockptr_t pagehead = NULL;       // list of unused page, would be NULL
 // Blockptr_t spanhead = NULL;
 

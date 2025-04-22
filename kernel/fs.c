@@ -128,6 +128,7 @@ inode_t *ialloc(uint_t dev, uint_t type){
             inode_t *ip = iget(dev, i);
             ip->type = type;
             brelse(b);
+            iupdate(ip);
             return ip;
         }
     }

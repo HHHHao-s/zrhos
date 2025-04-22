@@ -111,6 +111,9 @@ UPROGS =\
 	$U/_sh \
 	$U/_ls \
 	$U/_game \
+	$U/_mkdir \
+	$U/_cat \
+	$U/_echo \
 
 
 mkfs/mkfs: mkfs/mkfs.cpp $(UPROGS)

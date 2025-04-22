@@ -157,6 +157,10 @@ create(char *path, short type, short major, short minor)
   ip->major = major;
   ip->minor = minor;
   ip->nlink = 1;
+  for(int i=0;i<13;i++){
+    ip->addrs[i] = 0;
+  }
+  ip->size = 0;
   iupdate(ip);
 
   if(type == T_DIR){  // Create . and .. entries.
@@ -394,4 +398,21 @@ int sys_ioctl(){
     t->trapframe->a0 = -1;
     return -1;
 
+}
+
+
+int sys_mkdir(){
+
+    task_t *t = mytask();
+    char path[MAXPATH];
+    struct inode *ip;
+    begin_op();
+    if(argstr(0, path, MAXPATH) < 0 || (ip = create(path, T_DIR, 0, 0)) == 0){
+        end_op();
+        return -1;
+    }
+    iunlockput(ip);
+    end_op();
+    t->trapframe->a0 = 0;
+    return 0;
 }

@@ -84,3 +84,9 @@ close:
     li a7, SYS_close
     ecall
     ret
+
+.global mkdir
+mkdir:
+    li a7, SYS_mkdir
+    ecall
+    ret
